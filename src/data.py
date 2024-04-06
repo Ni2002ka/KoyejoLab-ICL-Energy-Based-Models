@@ -469,7 +469,8 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
         self.n_unique_datasets = self.wandb_config["dataset_kwargs"][
             "n_unique_datasets"
         ]
-        assert self.wandb_config["dataset_kwargs"]["prior"] == "linear"
+
+        assert self.wandb_config["dataset_kwargs"]["prior"] == "linear_regression"
         self.n_samples_per_dataset = self.wandb_config["dataset_kwargs"][
             "n_samples_per_dataset"
         ]
@@ -477,6 +478,30 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
         self.n_samples_in_context = self.wandb_config["dataset_kwargs"][
             "max_n_samples_in_context"
         ]
+
+        if self.wandb_config["dataset_kwargs"]["w_prior"] == "isotropic_gaussian":
+            self.w_prior_mean = self.wandb_config["dataset_kwargs"]["w_prior_kwargs"][
+                "mean"
+            ]
+            self.w_prior_std_dev = self.wandb_config["dataset_kwargs"][
+                "w_prior_kwargs"
+            ]["std_dev"]
+
+        if self.wandb_config["dataset_kwargs"]["x_prior"] == "isotropic_gaussian":
+            self.x_prior_mean = self.wandb_config["dataset_kwargs"]["x_prior_kwargs"][
+                "mean"
+            ]
+            self.x_prior_std_dev = self.wandb_config["dataset_kwargs"][
+                "x_prior_kwargs"
+            ]["std_dev"]
+
+        if self.wandb_config["dataset_kwargs"]["noise_prior"] == "isotropic_gaussian":
+            self.noise_prior_mean = self.wandb_config["dataset_kwargs"][
+                "noise_prior_kwargs"
+            ]["mean"]
+            self.noise_prior_std_dev = self.wandb_config["dataset_kwargs"][
+                "noise_prior_kwargs"
+            ]["std_dev"]
 
         # TODO: Do we need these 3 cases?: yes
         #   1. Finitely many unique pretraining datasets, each with finitely many samples.
@@ -526,35 +551,24 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
 
     def create_linear_distribution(
         self,
-    ) -> numpy.ndarray:
-        # TODO: draw a set of weights, draw N gaussian samples, find y, add an extra dim
-        weight = torch.randn(self.n_dimensions)
-        prior_cov = np.square(
-            self.wandb_config["dataset_kwargs"]["prior_kwargs"]["std_dev"]
-        ) * torch.eye(self.n_dimensions)
-        mean_distribution = torch.distributions.multivariate_normal.MultivariateNormal(
-            loc=torch.zeros(self.n_dimensions),
-            covariance_matrix=prior_cov,
-        )
-        means = mean_distribution.sample((self.n_components,))
-        component_cov = np.square(
-            self.wandb_config["dataset_kwargs"]["component_kwargs"]["std_dev"]
-        ) * torch.eye(self.n_dimensions)
-        mixture_of_gaussians = (
-            torch.distributions.mixture_same_family.MixtureSameFamily(
-                mixture_distribution=torch.distributions.Categorical(
-                    torch.ones(self.n_components)
-                ),
-                component_distribution=torch.distributions.MultivariateNormal(
-                    loc=means,
-                    covariance_matrix=component_cov,
-                ),
-            )
+    ) -> torch.Tensor:
+        weight = (
+            torch.randn(self.n_dimensions) * self.w_prior_std_dev + self.w_prior_mean
         )
 
-        return mixture_of_gaussians
+        data_samples_x = (
+            torch.randn(self.n_samples_in_context, self.n_dimensions)
+            * self.x_prior_std_dev
+            + self.x_prior_mean
+        )
+        data_samples_y = torch.matmul(data_samples_x, weight).unsqueeze(1)
+
+        # Add y column as last column in the samples
+        samples = torch.cat((data_samples_x, data_samples_y), dim=1)
+        return samples
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+        # TODO: this is next
         # Sample in-context data from that dataset.
         if self.n_unique_datasets < float("inf"):
             # Finitely many unique pretraining datasets, each with finitely many samples.
