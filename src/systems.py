@@ -37,8 +37,8 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
     def on_train_epoch_start(self, trainer, pl_module):
         # Only perform evaluation every n epochs.
         if (
-                trainer.current_epoch % pl_module.wandb_config["check_val_every_n_epoch"]
-                != 0
+            trainer.current_epoch % pl_module.wandb_config["check_val_every_n_epoch"]
+            != 0
         ):
             return
 
@@ -178,7 +178,7 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                         }
 
                 elif (
-                        self.wandb_config["mcmc_kwargs"]["algorithm"] == "hamiltonian_mcmc"
+                    self.wandb_config["mcmc_kwargs"]["algorithm"] == "hamiltonian_mcmc"
                 ):
                     transformer_sampled_data_results_dict = (
                         pl_module.sample_data_with_hamiltonian_mcmc(
@@ -225,20 +225,28 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
 
                 src.plot.plot_in_context_error_vs_n_in_context_examples(
                     squared_norm_diff_final_sampled_data=torch.norm(
-                        transformer_sampled_data_results_dict["final_sampled_data"].detach(), dim=-1)
+                        transformer_sampled_data_results_dict[
+                            "final_sampled_data"
+                        ].detach(),
+                        dim=-1,
+                    )
                     .cpu()
                     .numpy(),
                     wandb_logger=pl_module.wandb_logger,
-                    wandb_key=eval_name + "_in_context_error_vs_n_in_context_examples_for_transformer",
+                    wandb_key=eval_name
+                    + "_in_context_error_vs_n_in_context_examples_for_transformer",
                 )
 
                 src.plot.plot_in_context_error_vs_n_in_context_examples(
                     squared_norm_diff_final_sampled_data=torch.norm(
-                        true_sampled_data_results_dict["final_sampled_data"].detach(), dim=-1)
+                        true_sampled_data_results_dict["final_sampled_data"].detach(),
+                        dim=-1,
+                    )
                     .cpu()
                     .numpy(),
                     wandb_logger=pl_module.wandb_logger,
-                    wandb_key=eval_name + "_in_context_error_vs_n_in_context_examples_for_true_energy",
+                    wandb_key=eval_name
+                    + "_in_context_error_vs_n_in_context_examples_for_true_energy",
                 )
 
                 src.plot.plot_dataset_2D_real_data_and_sampled_data(
@@ -317,8 +325,8 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
         if self.wandb_config["learning_rate_scheduler"] is None:
             pass
         elif (
-                self.wandb_config["learning_rate_scheduler"]
-                == "cosine_annealing_warm_restarts"
+            self.wandb_config["learning_rate_scheduler"]
+            == "cosine_annealing_warm_restarts"
         ):
             scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
                 optimizer=optimizer,
@@ -327,8 +335,8 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
             optimizer_and_maybe_others_dict["lr_scheduler"] = scheduler
 
         elif (
-                self.wandb_config["learning_rate_scheduler"]
-                == "linear_warmup_cosine_annealing"
+            self.wandb_config["learning_rate_scheduler"]
+            == "linear_warmup_cosine_annealing"
         ):
             from flash.core.optimizers import LinearWarmupCosineAnnealingLR
 
@@ -354,7 +362,7 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
         return optimizer_and_maybe_others_dict
 
     def training_step(
-            self, batch: Dict[str, torch.Tensor], batch_idx: int
+        self, batch: Dict[str, torch.Tensor], batch_idx: int
     ) -> torch.Tensor:
         # ############################################################
         # Compute energy on real data.
@@ -421,8 +429,8 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
             # TODO: Figure out way to vectorize this with transformer.
             for confab_idx in range(n_confabulated_samples):
                 real_data_up_to_seq_idx[:, -1, :] = sampled_data[
-                                                    :, confab_idx, seq_idx, :
-                                                    ]
+                    :, confab_idx, seq_idx, :
+                ]
                 forward_results_on_sampled_data_up_to_seq_idx = (
                     self.transformer_ebm.forward(data=real_data_up_to_seq_idx)
                 )
@@ -430,8 +438,8 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
                 # "a view of a leaf Variable that requires grad is being used in an in-place operation."
                 updated_energy = torch.clone(energy_on_sampled_data)
                 updated_energy[:, confab_idx, seq_idx, :] = (
-                        energy_on_sampled_data[:, confab_idx, seq_idx, :]
-                        + forward_results_on_sampled_data_up_to_seq_idx["energy"][:, -1, :]
+                    energy_on_sampled_data[:, confab_idx, seq_idx, :]
+                    + forward_results_on_sampled_data_up_to_seq_idx["energy"][:, -1, :]
                 )
                 energy_on_sampled_data = updated_energy
 
@@ -458,9 +466,9 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
         total_loss = torch.mean(diff_of_energy) + self.wandb_config[
             "energy_regularization"
         ] * (
-                             torch.mean(torch.square(energy_on_sampled_data))
-                             + torch.mean(torch.square(energy_on_real_data))
-                     )
+            torch.mean(torch.square(energy_on_sampled_data))
+            + torch.mean(torch.square(energy_on_real_data))
+        )
 
         # Early stopping: If a model's loss plummets, end the run immediately.
         # 15.0 was chosen as the threshold heuristically.
@@ -505,9 +513,9 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
         return total_loss
 
     def measure_energy_landscape(
-            self,
-            real_data: torch.Tensor,
-            meshgrid: torch.Tensor,
+        self,
+        real_data: torch.Tensor,
+        meshgrid: torch.Tensor,
     ) -> Dict[str, torch.Tensor]:
         batch_size, seq_len, data_dim = real_data.shape
         total_meshgrid_points, _ = meshgrid.shape
@@ -554,7 +562,7 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
 
                 # Store the computed gradient in the gradient tensor.
                 neg_grad_energy_wrt_meshgrid[
-                batch_idx, :, seq_idx, :
+                    batch_idx, :, seq_idx, :
                 ] = -grad_energy_wrt_meshgrid_at_seq_idx.detach()
 
         energy_meshgrid_results_dict = {
@@ -566,10 +574,10 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
         return energy_meshgrid_results_dict
 
     def sample_data_with_langevin_mcmc(
-            self,
-            real_data: torch.Tensor,
-            initial_sampled_data: torch.Tensor,
-            noise_scale: float = None,
+        self,
+        real_data: torch.Tensor,
+        initial_sampled_data: torch.Tensor,
+        noise_scale: float = None,
     ) -> Dict[str, torch.Tensor]:
         if noise_scale is None:
             noise_scale = self.wandb_config["mcmc_kwargs"]["noise_scale"]
@@ -625,14 +633,14 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
 
                     # Update the sampled datum following: x   <-   x - nabla_x E(x, D).
                     sampled_datum = (
-                            sampled_datum
-                            - self.wandb_config["mcmc_kwargs"]["step_size"]
-                            * sampled_datum_grad
+                        sampled_datum
+                        - self.wandb_config["mcmc_kwargs"]["step_size"]
+                        * sampled_datum_grad
                     )
 
                 sampled_data[:, confab_idx, seq_idx, :] = sampled_datum[
-                                                          :, 0, :
-                                                          ].detach()
+                    :, 0, :
+                ].detach()
 
         results = {
             "final_sampled_data": sampled_data.detach(),
@@ -641,7 +649,7 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
         return results
 
     def sample_data_with_hamiltoinan_mcmc(
-            self, real_data: torch.Tensor, initial_sampled_data: torch.Tensor
+        self, real_data: torch.Tensor, initial_sampled_data: torch.Tensor
     ) -> Dict[str, torch.Tensor]:
         # results = {
         #     "final_sampled_data": sampled_data,
@@ -652,8 +660,8 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
 
     def hamiltonian(self, x, v, model, label):
         energy = (
-                0.5 * torch.pow(v, 2).sum(dim=1).sum(dim=1).sum(dim=1)
-                + model.forward(x, label).squeeze()
+            0.5 * torch.pow(v, 2).sum(dim=1).sum(dim=1).sum(dim=1)
+            + model.forward(x, label).squeeze()
         )
         return energy
 
@@ -879,9 +887,9 @@ class TransformerEnergyBasedModel(pl.LightningModule):
 
 class EnergyFunctionGaussian(pl.LightningModule):
     def __init__(
-            self,
-            mu: torch.Tensor,
-            sigma: torch.Tensor,
+        self,
+        mu: torch.Tensor,
+        sigma: torch.Tensor,
     ):
         super().__init__()
         self.mu = mu
@@ -899,10 +907,10 @@ class EnergyFunctionGaussian(pl.LightningModule):
 
 class EnergyFunctionMixtureOfGaussians(pl.LightningModule):
     def __init__(
-            self,
-            means: torch.Tensor,
-            covariances: torch.Tensor,
-            wandb_config,
+        self,
+        means: torch.Tensor,
+        covariances: torch.Tensor,
+        wandb_config,
     ):
         super().__init__()
         # TODO: Generalize to non-uniform mixture of Gaussians.
@@ -938,7 +946,7 @@ class EnergyFunctionMixtureOfGaussians(pl.LightningModule):
         return forward_results
 
     def sample_data_with_langevin_mcmc(
-            self, real_data: torch.Tensor, initial_sampled_data: torch.Tensor
+        self, real_data: torch.Tensor, initial_sampled_data: torch.Tensor
     ) -> Dict[str, torch.Tensor]:
         # batch_size, max_seq_len, data_dim = real_data.shape
         (
@@ -969,10 +977,10 @@ class EnergyFunctionMixtureOfGaussians(pl.LightningModule):
 
             # Update the sampled datum following: x   <-   x - nabla_x E(x, D).
             sampled_data = (
-                    sampled_data
-                    - self.wandb_config["mcmc_kwargs"]["step_size"]
-                    * sampled_data_grad
-                    / 10.0
+                sampled_data
+                - self.wandb_config["mcmc_kwargs"]["step_size"]
+                * sampled_data_grad
+                / 10.0
             )
 
         sampled_data = sampled_data.detach()

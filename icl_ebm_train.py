@@ -1,7 +1,6 @@
 import os
 
-import src.utils
-
+# Do this before importing GPU stuff to avoid defaults
 # For debugging, choose 1 GPU.
 if "CUDA_VISIBLE_DEVICES" not in os.environ:
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -40,6 +39,7 @@ from src.systems import (
     InContextLearningEnergyBasedModelEvaluationCallback,
     InContextLearningEnergyBasedModelSystem,
 )
+import src.utils
 
 
 def main(wandb_config: Dict[str, Any]):
@@ -109,6 +109,7 @@ def main(wandb_config: Dict[str, Any]):
     trainer.fit(model=icl_ebm_system, datamodule=datamodule)
 
     print("Milestone: Finished training.")
+    # TODO: test module
 
 
 # .fit() needs to be called below for multiprocessing.

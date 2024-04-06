@@ -202,11 +202,17 @@ def plot_in_context_error_vs_n_in_context_examples(
         axis=(0, 1),
     )
     std_dev_of_squared_norm_diff_final_sampled_data = np.std(
-    squared_norm_diff_final_sampled_data,
-    axis=(0, 1),
+        squared_norm_diff_final_sampled_data,
+        axis=(0, 1),
     )
 
-    plt.errorbar(x=np.arange(1, 1 + len(average_of_squared_norm_diff_final_sampled_data)), y=average_of_squared_norm_diff_final_sampled_data, yerr=std_dev_of_squared_norm_diff_final_sampled_data, fmt='-o', capsize=5)
+    plt.errorbar(
+        x=np.arange(1, 1 + len(average_of_squared_norm_diff_final_sampled_data)),
+        y=average_of_squared_norm_diff_final_sampled_data,
+        yerr=std_dev_of_squared_norm_diff_final_sampled_data,
+        fmt="-o",
+        capsize=5,
+    )
     # sns.lineplot(
     #     x=np.arange(1, 1 + len(average_of_squared_norm_diff_final_sampled_data)),
     #     y=average_of_squared_norm_diff_final_sampled_data,
