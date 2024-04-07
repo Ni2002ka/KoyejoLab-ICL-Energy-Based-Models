@@ -450,6 +450,28 @@ class MixtureOfGaussiansDataset(torch.utils.data.Dataset):
         return self.length
 
 
+class LinearDistribution(torch.utils.data.Dataset):
+    def __init__(
+        self, weight: torch.Tensor, n_dimensions, x_prior_mean, x_prior_std_dev
+    ) -> None:
+        self.n_dimensions = n_dimensions
+        self.weight = weight
+        self.x_prior_mean = x_prior_mean
+        self.x_prior_std_dev = x_prior_std_dev
+
+    def sample(self, sample_shape):
+        # sample n-1 dimensional x vector
+        sample_x = (
+            torch.randn(self.n_dimensions - 1) * self.x_prior_std_dev
+            + self.x_prior_mean
+        )
+        sample_y = torch.dot(self.weight, sample_x)
+
+        # Append y entry to x
+        sample = torch.cat((sample_x, sample_y), dim=0)
+        return sample
+
+
 class LinearRegressionsDataset(torch.utils.data.Dataset):
     def __init__(
         self,
@@ -495,42 +517,42 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
                 "x_prior_kwargs"
             ]["std_dev"]
 
-        if self.wandb_config["dataset_kwargs"]["noise_prior"] == "isotropic_gaussian":
-            self.noise_prior_mean = self.wandb_config["dataset_kwargs"][
-                "noise_prior_kwargs"
-            ]["mean"]
-            self.noise_prior_std_dev = self.wandb_config["dataset_kwargs"][
-                "noise_prior_kwargs"
-            ]["std_dev"]
-
-        # TODO: Do we need these 3 cases?: yes
+        # We have 3 cases:
         #   1. Finitely many unique pretraining datasets, each with finitely many samples.
         #   2. Finitely many unique pretraining datasets, each with infinitely many samples.
         #   3. Infinitely many unique pretraining datasets, with infinitely many samples. Constantly draw new weights
-        finitely_many_mixture_of_linears_list = [
-            self.create_linear_distribution() for _ in range(self.n_unique_datasets)
-        ]
-        self.finitely_many_mixture_of_linears_list = (
-            finitely_many_mixture_of_linears_list
-        )
-
-        # Finitely many unique pretraining datasets, each with finitely many samples.
-        if self.n_samples_per_dataset < float("inf"):
-            self.finite_mog_finite_samples_list = [
-                finitely_many_mixture_of_linears_list[dataset_idx].sample(
-                    sample_shape=(self.n_samples_per_dataset,)
-                )
-                for dataset_idx in range(self.n_unique_datasets)
+        if self.n_unique_datasets < float("inf"):
+            finitely_many_mixture_of_linears_list = [
+                self.create_linear_distribution() for _ in range(self.n_unique_datasets)
             ]
+            self.finitely_many_linear_datasets_list = (
+                finitely_many_mixture_of_linears_list
+            )
+
+            # Finitely many unique pretraining datasets, each with finitely many samples.
+            if self.n_samples_per_dataset < float("inf"):
+                self.finite_linear_datasets_finite_samples_list = [
+                    finitely_many_mixture_of_linears_list[dataset_idx].sample(
+                        sample_shape=(self.n_samples_per_dataset,)
+                    )
+                    for dataset_idx in range(self.n_unique_datasets)
+                ]
+            else:
+                self.finitely_many_linear_datasets_list = (
+                    finitely_many_mixture_of_linears_list
+                )
+        else:
+            # Infinitely many unique pretraining datasets, with infinitely many samples
+            self.data_generating_object = self.create_linear_distribution
 
         # Compute the range of synthetic data.
         self.noise_min = (
-            self.wandb_config["dataset_kwargs"]["prior_kwargs"]["mean"]
-            - 3.0 * self.wandb_config["dataset_kwargs"]["prior_kwargs"]["std_dev"]
+            self.wandb_config["dataset_kwargs"]["noise_prior_kwargs"]["mean"]
+            - 3.0 * self.wandb_config["dataset_kwargs"]["noise_prior_kwargs"]["std_dev"]
         )
         self.noise_max = (
-            self.wandb_config["dataset_kwargs"]["prior_kwargs"]["mean"]
-            + 3.0 * self.wandb_config["dataset_kwargs"]["prior_kwargs"]["std_dev"]
+            self.wandb_config["dataset_kwargs"]["noise_prior_kwargs"]["mean"]
+            + 3.0 * self.wandb_config["dataset_kwargs"]["noise_prior_kwargs"]["std_dev"]
         )
 
         self.split = split
@@ -551,36 +573,36 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
 
     def create_linear_distribution(
         self,
-    ) -> torch.Tensor:
+    ) -> LinearDistribution:
         weight = (
-            torch.randn(self.n_dimensions) * self.w_prior_std_dev + self.w_prior_mean
+            torch.randn(self.n_dimensions - 1) * self.w_prior_std_dev
+            + self.w_prior_mean
         )
-
-        data_samples_x = (
-            torch.randn(self.n_samples_in_context, self.n_dimensions)
-            * self.x_prior_std_dev
-            + self.x_prior_mean
+        linear_dist = LinearDistribution(
+            weight=weight,
+            n_dimensions=self.n_dimensions,
+            x_prior_mean=self.x_prior_mean,
+            x_prior_std_dev=self.x_prior_std_dev,
         )
-        data_samples_y = torch.matmul(data_samples_x, weight).unsqueeze(1)
-
-        # Add y column as last column in the samples
-        samples = torch.cat((data_samples_x, data_samples_y), dim=1)
-        return samples
+        return linear_dist
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        # TODO: this is next
         # Sample in-context data from that dataset.
         if self.n_unique_datasets < float("inf"):
             # Finitely many unique pretraining datasets, each with finitely many samples.
             if self.n_samples_per_dataset < float("inf"):
                 # Sample a random dataset.
                 dataset_idx = torch.randint(
-                    low=0, high=len(self.finite_mog_finite_samples_list), size=(1,)
+                    low=0,
+                    high=len(self.finite_linear_datasets_finite_samples_list),
+                    size=(1,),
                 ).item()
 
                 # Sample in-context data from that dataset.
                 # Shape: (n_samples_in_context, n_dimensions)
-                in_context_data = self.finite_mog_finite_samples_list[dataset_idx][
+                in_context_data = self.finite_linear_datasets_finite_samples_list[
+                    dataset_idx
+                ][
                     torch.randint(
                         low=0,
                         high=self.n_samples_per_dataset,
@@ -592,37 +614,26 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
             else:
                 dataset_idx = torch.randint(
                     low=0,
-                    high=len(self.finitely_many_mixture_of_gaussians_list),
+                    high=len(self.finitely_many_linear_datasets_list),
                     size=(1,),
                 ).item()
 
                 # Shape: (n_samples_in_context, n_dimensions)
-                in_context_data = self.finitely_many_mixture_of_gaussians_list[
+                in_context_data = self.finitely_many_linear_datasets_list[
                     dataset_idx
                 ].sample(sample_shape=(self.n_samples_in_context,))
 
-            means = self.finitely_many_mixture_of_gaussians_list[
-                dataset_idx
-            ].component_distribution.mean
-            covariances = self.finitely_many_mixture_of_gaussians_list[
-                dataset_idx
-            ].component_distribution.covariance_matrix
-
         else:
             # Infinitely many unique pretraining datasets, with infinitely many samples
-            mixture_of_gaussians = self.create_mixture_of_linears_distribution()
-
-            # Shape: (n_components, n_dimensions)
-            means = mixture_of_gaussians.component_distribution.mean
-            # Shape: (n_components, n_dimensions, n_dimensions)
-            covariances = mixture_of_gaussians.component_distribution.covariance_matrix
+            linear_distribution = self.create_linear_distribution()
 
             # Shape: (n_samples_in_context, n_dimensions)
-            in_context_data = mixture_of_gaussians.sample(
+            in_context_data = linear_distribution.sample(
                 sample_shape=(self.n_samples_in_context,)
             )
 
         # Draw noise from Uniform(noise_min, noise_max).
+        # TODO: change to gaussian noise
         initial_sampled_data = (self.noise_max - self.noise_min) * torch.rand(
             (self.ratio_of_confabulated_samples_to_real_samples,)
             + in_context_data.shape
@@ -630,8 +641,6 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
         return {
             "real_data": in_context_data,
             "initial_sampled_data": initial_sampled_data,
-            "means": means,
-            "covariances": covariances,
         }
 
     def __len__(self):
@@ -708,7 +717,6 @@ def create_dataset(
             wandb_config=wandb_config,
             split=split,
         )
-    # TODO: create linear datasets here for arbitrary dimension. Sample in-context samples with a gaussian with some var
     # TODO: MSE error
     # TODO: a parent class for linear and gaussian etc.
     elif wandb_config["dataset_kwargs"]["dataset"] == "linear_regression":
