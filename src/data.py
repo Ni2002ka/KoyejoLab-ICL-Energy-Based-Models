@@ -462,13 +462,13 @@ class LinearDistribution(torch.utils.data.Dataset):
     def sample(self, sample_shape):
         # sample n-1 dimensional x vector
         sample_x = (
-            torch.randn(self.n_dimensions - 1) * self.x_prior_std_dev
+            torch.randn(sample_shape + (self.n_dimensions - 1,)) * self.x_prior_std_dev
             + self.x_prior_mean
         )
-        sample_y = torch.dot(self.weight, sample_x)
+        sample_y = torch.multiply(sample_x, self.weight)
 
         # Append y entry to x
-        sample = torch.cat((sample_x, sample_y), dim=0)
+        sample = torch.cat((sample_x, sample_y), dim=1)
         return sample
 
 
@@ -481,9 +481,6 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
         super().__init__()
 
         self.wandb_config = wandb_config
-        # TODO: Generalize this to handle variable numbers of components
-        assert isinstance(self.wandb_config["dataset_kwargs"]["n_components"], int)
-        self.n_components = self.wandb_config["dataset_kwargs"]["n_components"]
         self.n_dimensions = self.wandb_config["dataset_kwargs"]["n_dimensions"]
         self.n_samples_per_dataset = self.wandb_config["dataset_kwargs"][
             "n_samples_per_dataset"
@@ -492,7 +489,6 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
             "n_unique_datasets"
         ]
 
-        assert self.wandb_config["dataset_kwargs"]["prior"] == "linear_regression"
         self.n_samples_per_dataset = self.wandb_config["dataset_kwargs"][
             "n_samples_per_dataset"
         ]
