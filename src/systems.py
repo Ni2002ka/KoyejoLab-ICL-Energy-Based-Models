@@ -30,6 +30,7 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
         else:
             self.n_workers = self.wandb_config["n_workers"]
 
+        # TODO: remove this?
         self.n_meshgrid_points_in_1D_slice = wandb_config["eval_kwargs"][
             "n_meshgrid_points_in_1D_slice"
         ]
@@ -93,11 +94,12 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                     pl_module.device
                 )
 
-                ground_truth_energy = EnergyFunctionMixtureOfGaussians(
-                    means=batch["means"][0].to(pl_module.device),
-                    covariances=batch["covariances"][0].to(pl_module.device),
-                    wandb_config=pl_module.wandb_config,
-                )
+                # TODO: we instead use MSE loss
+                # ground_truth_energy = EnergyFunctionMixtureOfGaussians(
+                #     means=batch["means"][0].to(pl_module.device),
+                #     # covariances=batch["covariances"][0].to(pl_module.device),
+                #     wandb_config=pl_module.wandb_config,
+                # )
 
                 # ############################################################
                 # Evaluate and plot energy on mesh grid at each time step.
@@ -152,30 +154,7 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                         )
                     )
 
-                    try:
-                        true_sampled_data_results_dict = (
-                            ground_truth_energy.sample_data_with_langevin_mcmc(
-                                real_data=real_data,
-                                initial_sampled_data=initial_sampled_data,
-                            )
-                        )
-
-                    except:
-                        true_sampled_data_results_dict = {
-                            "final_sampled_data": torch.full(
-                                (
-                                    [
-                                        1,
-                                        2,
-                                        self.wandb_config["dataset_kwargs"][
-                                            "max_n_samples_in_context"
-                                        ],
-                                        2,
-                                    ]
-                                ),
-                                float("nan"),
-                            ).to(pl_module.device)
-                        }
+                    true_sampled_data_results_dict = {"final_sampled_data": real_data}
 
                 elif (
                     self.wandb_config["mcmc_kwargs"]["algorithm"] == "hamiltonian_mcmc"
@@ -256,6 +235,8 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                     wandb_logger=pl_module.wandb_logger,
                     wandb_key=eval_name + "_real_data_and_sampled_data",
                 )
+
+
 
 
 class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
