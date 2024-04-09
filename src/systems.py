@@ -150,7 +150,7 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                         pl_module.sample_data_with_langevin_mcmc(
                             real_data=real_data,
                             initial_sampled_data=initial_sampled_data,
-                            noise_scale=0.0,
+                            noise_scale=0.1,
                         )
                     )
 
@@ -202,31 +202,18 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                     wandb_key=eval_name + "_in_context_error_vs_n_in_context_examples",
                 )
 
-                src.plot.plot_in_context_error_vs_n_in_context_examples(
-                    squared_norm_diff_final_sampled_data=torch.norm(
-                        transformer_sampled_data_results_dict[
-                            "final_sampled_data"
-                        ].detach(),
-                        dim=-1,
-                    )
-                    .cpu()
-                    .numpy(),
-                    wandb_logger=pl_module.wandb_logger,
-                    wandb_key=eval_name
-                    + "_in_context_error_vs_n_in_context_examples_for_transformer",
-                )
 
-                src.plot.plot_in_context_error_vs_n_in_context_examples(
-                    squared_norm_diff_final_sampled_data=torch.norm(
-                        true_sampled_data_results_dict["final_sampled_data"].detach(),
-                        dim=-1,
-                    )
-                    .cpu()
-                    .numpy(),
-                    wandb_logger=pl_module.wandb_logger,
-                    wandb_key=eval_name
-                    + "_in_context_error_vs_n_in_context_examples_for_true_energy",
-                )
+                # src.plot.plot_in_context_error_vs_n_in_context_examples(
+                #     squared_norm_diff_final_sampled_data=torch.norm(
+                #         true_sampled_data_results_dict["final_sampled_data"].detach(),
+                #         dim=-1,
+                #     )
+                #     .cpu()
+                #     .numpy(),
+                #     wandb_logger=pl_module.wandb_logger,
+                #     wandb_key=eval_name
+                #     + "_in_context_error_vs_n_in_context_examples_for_true_energy",
+                # )
 
                 src.plot.plot_dataset_2D_real_data_and_sampled_data(
                     real_data=real_data.cpu().numpy(),
