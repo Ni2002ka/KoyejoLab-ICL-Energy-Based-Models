@@ -30,7 +30,7 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
         else:
             self.n_workers = self.wandb_config["n_workers"]
 
-        # TODO: remove this?
+        # TODO: remove this for sweeps
         self.n_meshgrid_points_in_1D_slice = wandb_config["eval_kwargs"][
             "n_meshgrid_points_in_1D_slice"
         ]
@@ -174,16 +174,16 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                     .numpy()
                 )
 
-                # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, max seq length, data dim)
+                # We only calculate the MSE for the y coordinate
+                # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, max seq length, )
                 diff_final_sampled_data = torch.subtract(
                     transformer_sampled_data_results_dict["final_sampled_data"],
                     true_sampled_data_results_dict["final_sampled_data"],
-                )
+                )[:, :, -1]
 
-                # TODO: keep MSE for y coordinate
                 # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, max seq length)
                 squared_norm_diff_final_sampled_data = torch.square(
-                    torch.norm(diff_final_sampled_data, dim=-1)
+                    diff_final_sampled_data
                 )
 
                 eval_log_dict = {
@@ -202,7 +202,6 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                     wandb_logger=pl_module.wandb_logger,
                     wandb_key=eval_name + "_in_context_error_vs_n_in_context_examples",
                 )
-
 
                 # src.plot.plot_in_context_error_vs_n_in_context_examples(
                 #     squared_norm_diff_final_sampled_data=torch.norm(
@@ -223,8 +222,6 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                     wandb_logger=pl_module.wandb_logger,
                     wandb_key=eval_name + "_real_data_and_sampled_data",
                 )
-
-
 
 
 class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
@@ -441,7 +438,7 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
 
         # Early stopping: If a model's loss plummets, end the run immediately.
         # 25.0 was chosen as the threshold heuristically.
-        if total_loss.item() < -2500.0: # TODO: added this for debugging
+        if total_loss.item() < -2500.0:  # TODO: added this for debugging
             print("Loss too low. Ending run.")
             exit(0)
 
