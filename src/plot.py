@@ -225,7 +225,7 @@ def plot_in_context_error_vs_n_in_context_examples(
         r"$||x_{\theta}(t\rightarrow \infty) - x_{true}(t\rightarrow \infty) ||^2$"
     )
     plt.ylim(bottom=0.0)
-    plt.show()
+    # plt.show()
 
     # https://docs.wandb.ai/guides/track/log/plots#matplotlib-and-plotly-plots
     fig = plt.gcf()
@@ -235,4 +235,4 @@ def plot_in_context_error_vs_n_in_context_examples(
             images=[wandb.Image(fig)],
         )
 
-    plt.show()
+    # plt.show()
