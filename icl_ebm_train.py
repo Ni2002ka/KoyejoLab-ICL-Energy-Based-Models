@@ -8,7 +8,7 @@ os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 # For debugging, choose 1 GPU.
 if "CUDA_VISIBLE_DEVICES" not in os.environ:
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5"
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     # os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 
@@ -60,7 +60,7 @@ def main(wandb_config: Dict[str, Any]):
     )
 
     # TODO: keep this?
-    torch.set_float32_matmul_precision('high')
+    torch.set_float32_matmul_precision("high")
     # https://pytorch-lightning.readthedocs.io/en/latest/api/pytorch_lightning.trainer.trainer.Trainer.html
     trainer = pl.Trainer(
         accumulate_grad_batches=wandb_config["accumulate_grad_batches"],
@@ -86,7 +86,7 @@ def main(wandb_config: Dict[str, Any]):
         default_root_dir=run_checkpoint_dir,
         deterministic=True,
         accelerator="gpu" if torch.cuda.is_available() else "cpu",
-        # devices="4",
+        devices=-1,  # use all available GPUs
         # strategy='ddp',
         # fast_dev_run=True,
         # fast_dev_run=False,
@@ -102,6 +102,7 @@ def main(wandb_config: Dict[str, Any]):
         # profiler=PyTorchProfiler(filename=),  # PyTorch specific profiler
         precision=wandb_config["precision"],
         # strategy="ddp_find_unused_parameters_true", #TODO: remove this for efficiency?
+        strategy="ddp",
         sync_batchnorm=True,
     )
     if wandb_config["compile_model"] and hasattr(torch, "compile"):
