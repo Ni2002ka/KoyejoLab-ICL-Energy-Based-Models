@@ -541,15 +541,9 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
             # Infinitely many unique pretraining datasets, with infinitely many samples
             self.data_generating_object = self.create_linear_distribution
 
-        # Compute the range of synthetic data.
-        self.noise_min = (
-            self.wandb_config["dataset_kwargs"]["noise_prior_kwargs"]["mean"]
-            - 3.0 * self.wandb_config["dataset_kwargs"]["noise_prior_kwargs"]["std_dev"]
-        )
-        self.noise_max = (
-            self.wandb_config["dataset_kwargs"]["noise_prior_kwargs"]["mean"]
-            + 3.0 * self.wandb_config["dataset_kwargs"]["noise_prior_kwargs"]["std_dev"]
-        )
+        # Noise injected to the synthetic data
+        self.noise_prior_mean = self.wandb_config["dataset_kwargs"]["noise_prior_kwargs"]["mean"]
+        self.noise_prior_std_dev = self.wandb_config["dataset_kwargs"]["noise_prior_kwargs"]["std_dev"]
 
         self.split = split
         if self.split == "train":
@@ -628,12 +622,12 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
                 sample_shape=(self.n_samples_in_context,)
             )
 
-        # Draw noise from Uniform(noise_min, noise_max).
-        # TODO: change to gaussian noise
-        initial_sampled_data = (self.noise_max - self.noise_min) * torch.rand(
+        # Draw noise from Gaussian
+        initial_sampled_data = self.noise_prior_std_dev * torch.rand(
             (self.ratio_of_confabulated_samples_to_real_samples,)
             + in_context_data.shape
-        ) + self.noise_min
+        ) + self.noise_prior_mean
+
         return {
             "real_data": in_context_data,
             "initial_sampled_data": initial_sampled_data,
@@ -713,7 +707,6 @@ def create_dataset(
             wandb_config=wandb_config,
             split=split,
         )
-    # TODO: MSE error
     # TODO: a parent class for linear and gaussian etc.
     elif wandb_config["dataset_kwargs"]["dataset"] == "linear_regression":
         dataset = LinearRegressionsDataset(wandb_config=wandb_config, split=split)
