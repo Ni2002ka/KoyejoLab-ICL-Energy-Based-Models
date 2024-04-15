@@ -94,7 +94,6 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                     pl_module.device
                 )
 
-                # TODO: we instead use MSE loss
                 # ground_truth_energy = EnergyFunctionMixtureOfGaussians(
                 #     means=batch["means"][0].to(pl_module.device),
                 #     # covariances=batch["covariances"][0].to(pl_module.device),
@@ -124,17 +123,17 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                 # ############################################################
                 # Evaluate and plot gradient flow on mesh grid at each time step.
                 # ############################################################
-                src.plot.plot_dataset_2D_vector_fields(
-                    meshgrid=meshgrid_numpy,
-                    negative_grad_energy_wrt_x=energy_meshgrid_results_dict[
-                        "neg_grad_energy_wrt_meshgrid"
-                    ]
-                    .detach()
-                    .cpu()
-                    .numpy(),
-                    wandb_logger=pl_module.wandb_logger,
-                    wandb_key=eval_name + "_grad_energy_wrt_x",
-                )
+                # src.plot.plot_dataset_2D_vector_fields(
+                #     meshgrid=meshgrid_numpy,
+                #     negative_grad_energy_wrt_x=energy_meshgrid_results_dict[
+                #         "neg_grad_energy_wrt_meshgrid"
+                #     ]
+                #     .detach()
+                #     .cpu()
+                #     .numpy(),
+                #     wandb_logger=pl_module.wandb_logger,
+                #     wandb_key=eval_name + "_grad_energy_wrt_x",
+                # )
 
                 # ############################################################
                 # Sample new data initialized using randomly sampled noise.
@@ -180,6 +179,8 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                     transformer_sampled_data_results_dict["final_sampled_data"],
                     true_sampled_data_results_dict["final_sampled_data"],
                 )
+
+                # TODO: keep MSE for y coordinate
                 # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, max seq length)
                 squared_norm_diff_final_sampled_data = torch.square(
                     torch.norm(diff_final_sampled_data, dim=-1)
@@ -439,8 +440,8 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
         )
 
         # Early stopping: If a model's loss plummets, end the run immediately.
-        # 15.0 was chosen as the threshold heuristically.
-        if total_loss.item() < -25.0:
+        # 25.0 was chosen as the threshold heuristically.
+        if total_loss.item() < -2500.0: # TODO: added this for debugging
             print("Loss too low. Ending run.")
             exit(0)
 
