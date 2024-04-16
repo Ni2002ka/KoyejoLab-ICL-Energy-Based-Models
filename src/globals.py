@@ -2,7 +2,7 @@ default_config = {
     "accumulate_grad_batches": 2,
     "batch_size_train": 8,
     "batch_size_val": 1,
-    "check_val_every_n_epoch": 25,
+    "check_val_every_n_epoch": 2,
     "compile_model": False,
     # "dataset_kwargs": {
     #     "dataset": "mixture_of_gaussians",
@@ -36,7 +36,7 @@ default_config = {
         "w_prior": "isotropic_gaussian",
         "w_prior_kwargs": {
             "mean": 0.0,
-            "std_dev": 5.0,
+            "std_dev": 1.0,
         },
         "x_prior": "isotropic_gaussian",
         "x_prior_kwargs": {
@@ -132,7 +132,7 @@ default_config = {
         "replay_buffer": False,  # Use MCMC chains initialized from a replay buffer.
         "replay_buffer_size": 10000,
         "resampling_rate": 0.001,
-        "noise_scale": 0.01,
+        "noise_scale": 1.0,
     },
     "model_kwargs": {
         "activation": "gelu",
@@ -143,7 +143,7 @@ default_config = {
         "n_layers": 3,
     },
     "n_batches_per_epoch": 10,
-    "n_epochs": 100,
+    "n_epochs": 20,
     "n_workers": 8,
     "optimizer": "adam",
     # "precision": 32,
