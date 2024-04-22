@@ -25,131 +25,42 @@ parameters:
         ]
       max_n_samples_in_context:
         values: [ 40 ]
-      n_components:
-        values: [3]
       n_dimensions:
         values: [2]
       n_samples_per_dataset:
         values: [1000]
       n_unique_datasets:
-        values: [10, 36, 100, 361, 1000]
-      prior:
-        values: ["gaussian"]
-      prior_kwargs:
+        values: [10, 361, float("inf")]
+      w_prior:
+        values: ["isotropic_gaussian"]
+      w_prior_kwargs:
         parameters:
           mean:
             values: [0.0]
           std_dev:
             values: [5.0]
-      component:
-        values: ["gaussian"]
-      component_kwargs:
+      x_prior:
+        values: [ "isotropic_gaussian" ]
+      x_prior_kwargs:
         parameters:
           mean:
-            values: [0.0]
+            values: [ 0.0 ]
           std_dev:
-            values: [ 0.5 ]
+            values: [ 5.0 ]
+      noise_prior:
+        values: [ "isotropic_gaussian" ]
+      noise_prior_kwargs:
+        parameters:
+          mean:
+            values: [ 0.0 ]
+          std_dev:
+            values: [0.1, 5.0, 10. ]
   energy_regularization:
     values: [1e-3]
+
   eval_datasets:
     parameters:
-      n_components_eq_1:
-        parameters:
-          dataset:
-            values: [
-              "mixture_of_gaussians",
-            ]
-          max_n_samples_in_context:
-            values: [ 40 ]
-          n_components:
-            values: [ 1 ]
-          n_dimensions:
-            values: [ 2 ]
-          n_samples_per_dataset:
-            values: [ 1000 ]
-          n_unique_datasets:
-            values: [ 1 ]
-          prior:
-            values: [ "gaussian" ]
-          prior_kwargs:
-            parameters:
-              mean:
-                values: [ 0.0 ]
-              std_dev:
-                values: [ 5.0 ]
-          component:
-            values: [ "gaussian" ]
-          component_kwargs:
-            parameters:
-              mean:
-                values: [ 0.0 ]
-              std_dev:
-                values: [ 0.5 ]
-      n_components_eq_2:
-        parameters:
-          dataset:
-            values: [
-              "mixture_of_gaussians",
-            ]
-          max_n_samples_in_context:
-            values: [ 40 ]
-          n_components:
-            values: [ 2 ]
-          n_dimensions:
-            values: [ 2 ]
-          n_samples_per_dataset:
-            values: [ 1000 ]
-          n_unique_datasets:
-            values: [ 1 ]
-          prior:
-            values: [ "gaussian" ]
-          prior_kwargs:
-            parameters:
-              mean:
-                values: [ 0.0 ]
-              std_dev:
-                values: [ 5.0 ]
-          component:
-            values: [ "gaussian" ]
-          component_kwargs:
-            parameters:
-              mean:
-                values: [ 0.0 ]
-              std_dev:
-                values: [ 0.5 ]
-      n_components_eq_3:
-        parameters:
-          dataset:
-            values: [
-              "mixture_of_gaussians",
-            ]
-          max_n_samples_in_context:
-            values: [ 40 ]
-          n_components:
-            values: [ 3 ]
-          n_dimensions:
-            values: [ 2 ]
-          n_samples_per_dataset:
-            values: [ 1000 ]
-          n_unique_datasets:
-            values: [ 1 ]
-          prior:
-            values: [ "gaussian" ]
-          prior_kwargs:
-            parameters:
-              mean:
-                values: [ 0.0 ]
-              std_dev:
-                values: [ 5.0 ]
-          component:
-            values: [ "gaussian" ]
-          component_kwargs:
-            parameters:
-              mean:
-                values: [ 0.0 ]
-              std_dev:
-                values: [ 0.5 ]
-      n_components_eq_4:
+      standard_eval_dataset_kwargs:
         parameters:
           dataset:
             values: [
@@ -157,62 +68,36 @@ parameters:
             ]
           max_n_samples_in_context:
             values: [ 40 ]
-          n_components:
-            values: [ 4 ]
           n_dimensions:
-            values: [ 2 ]
+            values: [2]
           n_samples_per_dataset:
-            values: [ 1000 ]
+            values: [1000]
           n_unique_datasets:
-            values: [ 1 ]
-          prior:
-            values: [ "gaussian" ]
-          prior_kwargs:
+            values: [10, 361, float("inf")]
+          w_prior:
+            values: ["isotropic_gaussian"]
+          w_prior_kwargs:
+            parameters:
+              mean:
+                values: [0.0]
+              std_dev:
+                values: [10.0]
+          x_prior:
+            values: [ "isotropic_gaussian" ]
+          x_prior_kwargs:
             parameters:
               mean:
                 values: [ 0.0 ]
               std_dev:
                 values: [ 5.0 ]
-          component:
-            values: [ "gaussian" ]
-          component_kwargs:
+          noise_prior:
+            values: [ "isotropic_gaussian" ]
+          noise_prior_kwargs:
             parameters:
               mean:
                 values: [ 0.0 ]
               std_dev:
-                values: [ 0.5 ]
-      n_components_eq_5:
-        parameters:
-          dataset:
-            values: [
-              "mixture_of_gaussians",
-            ]
-          max_n_samples_in_context:
-            values: [ 40 ]
-          n_components:
-            values: [ 5 ]
-          n_dimensions:
-            values: [ 2 ]
-          n_samples_per_dataset:
-            values: [ 1000 ]
-          n_unique_datasets:
-            values: [ 1 ]
-          prior:
-            values: [ "gaussian" ]
-          prior_kwargs:
-            parameters:
-              mean:
-                values: [ 0.0 ]
-              std_dev:
-                values: [ 5.0 ]
-          component:
-            values: [ "gaussian" ]
-          component_kwargs:
-            parameters:
-              mean:
-                values: [ 0.0 ]
-              std_dev:
-                values: [ 0.5 ]
+                values: [0.1, 5.0, 10. ]
   eval_kwargs:
     parameters:
       n_meshgrid_points_in_1D_slice:
@@ -234,7 +119,7 @@ parameters:
       n_mcmc_steps:
         values: [15]
       step_size:
-        values: [10.0, 3.16, 1.0, 0.1, 0.316]
+        values: [10.0, 1., 0.5, 0.01]
       kl_coeff:
         values: [0.0]
       ratio_of_confabulated_samples_to_real_samples:
@@ -246,7 +131,7 @@ parameters:
       resampling_rate:
         values: [0.001]
       noise_scale:
-        values: [0.01]
+        values: [10., 2.0, 0.1]
   model_kwargs:
     parameters:
       activation:
