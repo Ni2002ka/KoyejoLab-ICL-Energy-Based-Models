@@ -123,17 +123,17 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                 # ############################################################
                 # Evaluate and plot gradient flow on mesh grid at each time step.
                 # ############################################################
-                # src.plot.plot_dataset_2D_vector_fields(
-                #     meshgrid=meshgrid_numpy,
-                #     negative_grad_energy_wrt_x=energy_meshgrid_results_dict[
-                #         "neg_grad_energy_wrt_meshgrid"
-                #     ]
-                #     .detach()
-                #     .cpu()
-                #     .numpy(),
-                #     wandb_logger=pl_module.wandb_logger,
-                #     wandb_key=eval_name + "_grad_energy_wrt_x",
-                # )
+                src.plot.plot_dataset_2D_vector_fields(
+                    meshgrid=meshgrid_numpy,
+                    negative_grad_energy_wrt_x=energy_meshgrid_results_dict[
+                        "neg_grad_energy_wrt_meshgrid"
+                    ]
+                    .detach()
+                    .cpu()
+                    .numpy(),
+                    wandb_logger=pl_module.wandb_logger,
+                    wandb_key=eval_name + "_grad_energy_wrt_x",
+                )
 
                 # ############################################################
                 # Sample new data initialized using randomly sampled noise.
