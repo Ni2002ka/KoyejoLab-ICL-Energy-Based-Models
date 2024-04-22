@@ -2,7 +2,7 @@ default_config = {
     "accumulate_grad_batches": 2,
     "batch_size_train": 8,
     "batch_size_val": 1,
-    "check_val_every_n_epoch": 2,
+    "check_val_every_n_epoch": 5,
     "compile_model": False,
     # "dataset_kwargs": {
     #     "dataset": "mixture_of_gaussians",
@@ -31,22 +31,27 @@ default_config = {
         "n_dimensions": 2,
         # "n_samples_per_dataset": float("inf"),
         "n_samples_per_dataset": 1000,
-        # "n_unique_datasets": float("inf"),
-        "n_unique_datasets": 7,
+        "n_unique_datasets": float("inf"),
+        # "n_unique_datasets": 7,
         "w_prior": "isotropic_gaussian",
         "w_prior_kwargs": {
             "mean": 0.0,
-            "std_dev": 1.0,
+            "std_dev": 2.0,
         },
-        "x_prior": "isotropic_gaussian",
+        # "x_prior": "isotropic_gaussian",
+        # "x_prior_kwargs": {
+        #     "mean": 0.0,
+        #     "std_dev": 5.0,
+        # },
+        "x_prior": "uniform",
         "x_prior_kwargs": {
-            "mean": 0.0,
-            "std_dev": 5.0,
+            "low": -10.0,
+            "high": 10.0,
         },
         "noise_prior": "isotropic_gaussian",
         "noise_prior_kwargs": {
             "mean": 0.0,
-            "std_dev": 0.001,
+            "std_dev": 5.0,
         },
     },
     "eval_datasets": {
@@ -62,17 +67,22 @@ default_config = {
             "w_prior": "isotropic_gaussian",
             "w_prior_kwargs": {
                 "mean": 0.0,
-                "std_dev": 5.0,
+                "std_dev": 1.,
             },
-            "x_prior": "isotropic_gaussian",
+            # "x_prior": "isotropic_gaussian",
+            # "x_prior_kwargs": {
+            #     "mean": 1.0,
+            #     "std_dev": 5.0,
+            # },
+            "x_prior": "uniform",
             "x_prior_kwargs": {
-                "mean": 0.0,
-                "std_dev": 5.0,
+                "low": -10.0,
+                "high": 10.0,
             },
             "noise_prior": "isotropic_gaussian",
             "noise_prior_kwargs": {
                 "mean": 0.0,
-                "std_dev": 0.001,
+                "std_dev": 5.0,
             },
         },
         # "num_gaussian_eval_dataset_kwargs": {
@@ -126,13 +136,13 @@ default_config = {
         "algorithm": "langevin_mcmc",
         "all_steps": False,
         "n_mcmc_steps": 7,
-        "step_size": 0.1,  # Yilun says large step sizes e.g., 100.0, 10. are good.
+        "step_size": 1.0,  # Yilun says large step sizes e.g., 100.0, 10. are good.
         "kl_coeff": 0.0,
         "ratio_of_confabulated_samples_to_real_samples": 3,
         "replay_buffer": False,  # Use MCMC chains initialized from a replay buffer.
         "replay_buffer_size": 10000,
         "resampling_rate": 0.001,
-        "noise_scale": 1.0,
+        "noise_scale": 2.0,
     },
     "model_kwargs": {
         "activation": "gelu",
@@ -143,7 +153,7 @@ default_config = {
         "n_layers": 3,
     },
     "n_batches_per_epoch": 10,
-    "n_epochs": 20,
+    "n_epochs": 200,
     "n_workers": 8,
     "optimizer": "adam",
     # "precision": 32,
