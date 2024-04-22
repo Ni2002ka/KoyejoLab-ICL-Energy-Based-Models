@@ -40,13 +40,13 @@ parameters:
           std_dev:
             values: [5.0]
       x_prior:
-        values: [ "isotropic_gaussian" ]
+        values: [ "uniform" ]
       x_prior_kwargs:
         parameters:
-          mean:
-            values: [ 0.0 ]
-          std_dev:
-            values: [ 5.0 ]
+          low:
+            values: [ -10.0 ]
+          high:
+            values: [ 10.0 ]
       noise_prior:
         values: [ "isotropic_gaussian" ]
       noise_prior_kwargs:
@@ -83,13 +83,13 @@ parameters:
               std_dev:
                 values: [10.0]
           x_prior:
-            values: [ "isotropic_gaussian" ]
+            values: [ "uniform" ]
           x_prior_kwargs:
             parameters:
-              mean:
-                values: [ 0.0 ]
-              std_dev:
-                values: [ 5.0 ]
+              low:
+                values: [ -10.0 ]
+              high:
+                values: [ 10.0 ]
           noise_prior:
             values: [ "isotropic_gaussian" ]
           noise_prior_kwargs:
