@@ -452,19 +452,34 @@ class MixtureOfGaussiansDataset(torch.utils.data.Dataset):
 
 class LinearDistribution(torch.utils.data.Dataset):
     def __init__(
-        self, weight: torch.Tensor, n_dimensions, x_prior_mean, x_prior_std_dev
+        self, weight: torch.Tensor, n_dimensions, x_prior, x_prior_kwargs
     ) -> None:
         self.n_dimensions = n_dimensions
         self.weight = weight
-        self.x_prior_mean = x_prior_mean
-        self.x_prior_std_dev = x_prior_std_dev
+        self.x_prior = x_prior
+        if x_prior == "isotropic_gaussian":
+            self.x_prior_mean = x_prior_kwargs["mean"]
+            self.x_prior_std_dev = x_prior_kwargs["std_dev"]
+        elif x_prior == "uniform":
+            self.x_prior_low = x_prior_kwargs["low"]
+            self.x_prior_high = x_prior_kwargs["high"]
 
     def sample(self, sample_shape):
         # sample n-1 dimensional x vector
-        sample_x = (
-            torch.randn(sample_shape + (self.n_dimensions - 1,)) * self.x_prior_std_dev
-            + self.x_prior_mean
-        )
+        if self.x_prior == "isotropic_gaussian":
+            sample_x = (
+                torch.randn(sample_shape + (self.n_dimensions - 1,))
+                * self.x_prior_std_dev
+                + self.x_prior_mean
+            )
+        elif self.x_prior == "uniform":
+            sample_x = (
+                torch.rand(sample_shape + (self.n_dimensions - 1,))
+                * (self.x_prior_high - self.x_prior_low)
+                + self.x_prior_low
+            )
+        else:
+            raise NotImplementedError
         sample_y = torch.multiply(sample_x, self.weight)
 
         # Append y entry to x
@@ -505,13 +520,9 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
                 "w_prior_kwargs"
             ]["std_dev"]
 
-        if self.wandb_config["dataset_kwargs"]["x_prior"] == "isotropic_gaussian":
-            self.x_prior_mean = self.wandb_config["dataset_kwargs"]["x_prior_kwargs"][
-                "mean"
-            ]
-            self.x_prior_std_dev = self.wandb_config["dataset_kwargs"][
-                "x_prior_kwargs"
-            ]["std_dev"]
+        self.x_prior = self.wandb_config["dataset_kwargs"]["x_prior"]
+        self.x_prior_kwargs = self.wandb_config["dataset_kwargs"]["x_prior_kwargs"]
+
 
         # We have 3 cases:
         #   1. Finitely many unique pretraining datasets, each with finitely many samples.
@@ -542,8 +553,12 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
             self.data_generating_object = self.create_linear_distribution
 
         # Noise injected to the synthetic data
-        self.noise_prior_mean = self.wandb_config["dataset_kwargs"]["noise_prior_kwargs"]["mean"]
-        self.noise_prior_std_dev = self.wandb_config["dataset_kwargs"]["noise_prior_kwargs"]["std_dev"]
+        self.noise_prior_mean = self.wandb_config["dataset_kwargs"][
+            "noise_prior_kwargs"
+        ]["mean"]
+        self.noise_prior_std_dev = self.wandb_config["dataset_kwargs"][
+            "noise_prior_kwargs"
+        ]["std_dev"]
 
         self.split = split
         if self.split == "train":
@@ -571,8 +586,8 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
         linear_dist = LinearDistribution(
             weight=weight,
             n_dimensions=self.n_dimensions,
-            x_prior_mean=self.x_prior_mean,
-            x_prior_std_dev=self.x_prior_std_dev,
+            x_prior=self.x_prior,
+            x_prior_kwargs=self.x_prior_kwargs,
         )
         return linear_dist
 
@@ -623,10 +638,14 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
             )
 
         # Draw noise from Gaussian
-        initial_sampled_data = self.noise_prior_std_dev * torch.rand(
-            (self.ratio_of_confabulated_samples_to_real_samples,)
-            + in_context_data.shape
-        ) + self.noise_prior_mean
+        initial_sampled_data = (
+            self.noise_prior_std_dev
+            * torch.randn(
+                (self.ratio_of_confabulated_samples_to_real_samples,)
+                + in_context_data.shape
+            )
+            + self.noise_prior_mean
+        )
 
         return {
             "real_data": in_context_data,
