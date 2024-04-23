@@ -149,7 +149,7 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                         pl_module.sample_data_with_langevin_mcmc(
                             real_data=real_data,
                             initial_sampled_data=initial_sampled_data,
-                            noise_scale=0.1,
+                            noise_scale=self.wandb_config["mcmc_kwargs"]["noise_scale"],
                         )
                     )
 
@@ -186,7 +186,7 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                     diff_final_sampled_data
                 )
 
-                eval_log_dict = { #TODO: make sure this works as expected
+                eval_log_dict = {
                     f"test_{eval_name}/mse_transformers_samples_vs_true_samples_in_context={seq_idx}": torch.mean(
                         squared_norm_diff_final_sampled_data[:, :, seq_idx]
                     )
@@ -437,9 +437,8 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
         )
 
         # Early stopping: If a model's loss plummets, end the run immediately.
-        # 25.0 was chosen as the threshold heuristically.
-        if total_loss.item() < -2500.0:  # TODO: added this for debugging
-            print("Loss too low. Ending run.")
+        if torch.isnan(torch.tensor(total_loss.item())):  # TODO: ideally, this should be some lower bound e.g. 25.0
+            print("Loss is NaN. Ending run.")
             exit(0)
 
         loss_results = {
