@@ -149,7 +149,7 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                         pl_module.sample_data_with_langevin_mcmc(
                             real_data=real_data,
                             initial_sampled_data=initial_sampled_data,
-                            noise_scale=self.wandb_config["mcmc_kwargs"]["noise_scale"],
+                            noise_scale=0.1,
                         )
                     )
 
@@ -596,11 +596,15 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
                         [energy[:, seq_idx, :].sum()], [sampled_datum]
                     )[0]
 
+                    # Clip gradient to avoid exploding gradients.
+                    torch.nn.utils.clip_grad_norm_(sampled_datum_grad, self.wandb_config["gradient_clip_val"])
+
                     # Update the sampled datum following: x   <-   x - nabla_x E(x, D).
                     sampled_datum = (
                         sampled_datum
-                        - self.wandb_config["mcmc_kwargs"]["step_size"]
+                        - noise_scale # step size has to be half of the noise scale
                         * sampled_datum_grad
+                        / 2.0
                     )
 
                 sampled_data[:, confab_idx, seq_idx, :] = sampled_datum[
