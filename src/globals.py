@@ -41,12 +41,12 @@ default_config = {
         # "x_prior": "isotropic_gaussian",
         # "x_prior_kwargs": {
         #     "mean": 0.0,
-        #     "std_dev": 5.0,
+        #     "std_dev": 100.0,
         # },
         "x_prior": "uniform",
         "x_prior_kwargs": {
-            "low": -10.0,
-            "high": 10.0,
+            "low": -15.0,
+            "high": 15.0,
         },
         "noise_prior": "isotropic_gaussian",
         "noise_prior_kwargs": {
@@ -71,8 +71,8 @@ default_config = {
             },
             # "x_prior": "isotropic_gaussian",
             # "x_prior_kwargs": {
-            #     "mean": 1.0,
-            #     "std_dev": 5.0,
+            #     "mean": 0.0,
+            #     "std_dev": 10.0,
             # },
             "x_prior": "uniform",
             "x_prior_kwargs": {
