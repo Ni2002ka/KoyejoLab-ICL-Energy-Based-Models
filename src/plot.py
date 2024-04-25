@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import os
 
 import pandas as pd
@@ -49,8 +50,11 @@ def plot_dataset_2D_energy_landscapes(
                 ),
                 levels=100,
                 cmap="coolwarm",
-                vmin=np.min(energy_landscape[batch_idx]),
-                vmax=np.max(energy_landscape[batch_idx]),
+                norm=colors.SymLogNorm(
+                    linthresh=0.03,
+                    vmin=np.min(energy_landscape[batch_idx]),
+                    vmax=np.max(energy_landscape[batch_idx]),
+                ),
             )
             ax.scatter(
                 x=real_data[batch_idx, :seq_idx, 0],
