@@ -177,8 +177,12 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                 # We only calculate the MSE for the y coordinate
                 # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, max seq length, )
                 diff_final_sampled_data = torch.subtract(
-                    transformer_sampled_data_results_dict["final_sampled_data"][:, :, :, -1],
-                    true_sampled_data_results_dict["final_sampled_data"][:, :, -1].unsqueeze(0),
+                    transformer_sampled_data_results_dict["final_sampled_data"][
+                        :, :, :, -1
+                    ],
+                    true_sampled_data_results_dict["final_sampled_data"][
+                        :, :, -1
+                    ].unsqueeze(0),
                 )
 
                 # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, max seq length)
@@ -190,7 +194,7 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                     f"test_{eval_name}/mse_transformers_samples_vs_true_samples_in_context={seq_idx}": torch.mean(
                         squared_norm_diff_final_sampled_data[:, :, seq_idx]
                     )
-                        for seq_idx in range(diff_final_sampled_data.shape[2])
+                    for seq_idx in range(diff_final_sampled_data.shape[2])
                 }
 
                 wandb.log(eval_log_dict)
@@ -437,7 +441,9 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
         )
 
         # Early stopping: If a model's loss plummets, end the run immediately.
-        if torch.isnan(torch.tensor(total_loss.item())):  # TODO: ideally, this should be some lower bound e.g. 25.0
+        if torch.isnan(
+            torch.tensor(total_loss.item())
+        ):  # TODO: ideally, this should be some lower bound e.g. 25.0
             print("Loss is NaN. Ending run.")
             exit(0)
 
@@ -596,13 +602,17 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
                         [energy[:, seq_idx, :].sum()], [sampled_datum]
                     )[0]
 
-                    # Clip gradient to avoid exploding gradients.
-                    torch.nn.utils.clip_grad_norm_(sampled_datum_grad, self.wandb_config["gradient_clip_val"])
+                    # Clamp gradient to avoid exploding gradients.
+                    sampled_datum_grad = torch.clamp(
+                        sampled_datum_grad,
+                        -self.wandb_config["mcmc_kwargs"]["gradient_clip_val"],
+                        self.wandb_config["mcmc_kwargs"]["gradient_clip_val"],
+                    )
 
                     # Update the sampled datum following: x   <-   x - nabla_x E(x, D).
                     sampled_datum = (
                         sampled_datum
-                        - noise_scale # step size has to be half of the noise scale
+                        - noise_scale  # step size has to be half of the noise scale
                         * sampled_datum_grad
                         / 2.0
                     )
