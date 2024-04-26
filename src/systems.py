@@ -6,6 +6,7 @@ import torch.distributions
 import torch.nn
 import torch.nn.functional
 import torch.utils.data
+from transformers import GPT2Model, GPT2Config
 from typing import Any, Callable, Dict, List, Tuple, Union
 import wandb
 import src.data

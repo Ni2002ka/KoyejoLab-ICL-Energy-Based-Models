@@ -1,12 +1,5 @@
 # KoyejoLab-ICL-Energy-Based-Models
 
-This code base is largely based upon the repository
-https://github.com/RylanSchaeffer/KoyejoLab-Nonparametric-Clustering-Associative-Memory-Models
-
-
-## Setup
-
-
 ## Setup
 
 (Optional) Update conda:
@@ -31,8 +24,6 @@ Then make sure you're logged into wandb:
 
 `wandb login`
 
-
-
 ## Running
 
 ### Development & Debugging
@@ -51,19 +42,23 @@ Then create the sweep:
 
 This will output a sweep ID e.g., `ib99560j`. Use this sweep ID to run the sweep:
 
-`wandb agent <your W&B username>/nonparam-clustering-assoc-memory/<sweep id>`
+`wandb agent <your W&B username>/icl-ebm/<sweep id>`
 
 ### Cluster
 
-Code currently resides on `Trinity` and `Hyperion3`.
-
-
+Code currently resides on `mercury1` and `hyperturing1`.
 
 ## Contributing
 
-Code is located inside `src/`. The main entry point is `fit_and_score_one.py`. Additional comments:
+Code is located inside `src/`. The main entry point is `icl_ebm_train.py`. Additional comments:
 
 1. Use `black` to format your code. See [here](https://pypi.org/project/black/) for more information. To install, `pip install black`. To format the repo, run `black .` from the root directory.
 2. Use [type hints](https://docs.python.org/3/library/typing.html) as much as possible.
 3. Imports should proceed in two blocks: (1) general python libraries, (2) custom python code. Both blocks should be alphabetically ordered.
 4. Plots, when appropriate, should use `sns.set_style("whitegrid")`.
+
+
+## Attribution
+
+Some of this code is based on prior work
+https://github.com/RylanSchaeffer/KoyejoLab-Nonparametric-Clustering-Associative-Memory-Models
