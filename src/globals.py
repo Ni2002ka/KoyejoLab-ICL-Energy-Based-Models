@@ -48,7 +48,7 @@ default_config = {
             "low": -15.0,
             "high": 15.0,
         },
-        "data_std_dev": .5,
+        "data_std_dev": 0.5,
         "noise_prior": "isotropic_gaussian",
         "noise_prior_kwargs": {
             "mean": 0.0,
@@ -80,7 +80,7 @@ default_config = {
                 "low": -10.0,
                 "high": 10.0,
             },
-            "data_std_dev": .5,
+            "data_std_dev": 0.5,
             "noise_prior": "isotropic_gaussian",
             "noise_prior_kwargs": {
                 "mean": 0.0,
@@ -129,7 +129,7 @@ default_config = {
     "eval_kwargs": {
         "n_meshgrid_points_in_1D_slice": 13,
     },
-    "energy_regularization": .001,
+    "energy_regularization": 0.001,
     "gradient_clip_val": 0.1,
     "learning_rate": 0.001,
     "learning_rate_scheduler": "None",

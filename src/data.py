@@ -482,7 +482,9 @@ class LinearDistribution(torch.utils.data.Dataset):
         else:
             raise NotImplementedError
         # inject some noise to avoid learning a sharp basin
-        sample_y = torch.normal(torch.multiply(sample_x, self.weight), self.data_std_dev)
+        sample_y = torch.normal(
+            torch.multiply(sample_x, self.weight), self.data_std_dev
+        )
 
         # Append y entry to x
         sample = torch.cat((sample_x, sample_y), dim=1)
@@ -524,7 +526,6 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
 
         self.x_prior = self.wandb_config["dataset_kwargs"]["x_prior"]
         self.x_prior_kwargs = self.wandb_config["dataset_kwargs"]["x_prior_kwargs"]
-
 
         # We have 3 cases:
         #   1. Finitely many unique pretraining datasets, each with finitely many samples.
