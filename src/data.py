@@ -452,11 +452,12 @@ class MixtureOfGaussiansDataset(torch.utils.data.Dataset):
 
 class LinearDistribution(torch.utils.data.Dataset):
     def __init__(
-        self, weight: torch.Tensor, n_dimensions, x_prior, x_prior_kwargs
+        self, weight: torch.Tensor, n_dimensions, x_prior, x_prior_kwargs, data_std_dev
     ) -> None:
         self.n_dimensions = n_dimensions
         self.weight = weight
         self.x_prior = x_prior
+        self.data_std_dev = data_std_dev
         if x_prior == "isotropic_gaussian":
             self.x_prior_mean = x_prior_kwargs["mean"]
             self.x_prior_std_dev = x_prior_kwargs["std_dev"]
@@ -480,7 +481,8 @@ class LinearDistribution(torch.utils.data.Dataset):
             )
         else:
             raise NotImplementedError
-        sample_y = torch.multiply(sample_x, self.weight)
+        # inject some noise to avoid learning a sharp basin
+        sample_y = torch.normal(torch.multiply(sample_x, self.weight), self.data_std_dev)
 
         # Append y entry to x
         sample = torch.cat((sample_x, sample_y), dim=1)
@@ -588,6 +590,7 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
             n_dimensions=self.n_dimensions,
             x_prior=self.x_prior,
             x_prior_kwargs=self.x_prior_kwargs,
+            data_std_dev=self.wandb_config["dataset_kwargs"]["data_std_dev"],
         )
         return linear_dist
 

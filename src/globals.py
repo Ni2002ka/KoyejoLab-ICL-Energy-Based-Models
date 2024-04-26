@@ -48,6 +48,7 @@ default_config = {
             "low": -15.0,
             "high": 15.0,
         },
+        "data_std_dev": .5,
         "noise_prior": "isotropic_gaussian",
         "noise_prior_kwargs": {
             "mean": 0.0,
@@ -67,7 +68,7 @@ default_config = {
             "w_prior": "isotropic_gaussian",
             "w_prior_kwargs": {
                 "mean": 0.0,
-                "std_dev": 1.,
+                "std_dev": 5.0,
             },
             # "x_prior": "isotropic_gaussian",
             # "x_prior_kwargs": {
@@ -79,6 +80,7 @@ default_config = {
                 "low": -10.0,
                 "high": 10.0,
             },
+            "data_std_dev": .5,
             "noise_prior": "isotropic_gaussian",
             "noise_prior_kwargs": {
                 "mean": 0.0,
@@ -127,7 +129,7 @@ default_config = {
     "eval_kwargs": {
         "n_meshgrid_points_in_1D_slice": 13,
     },
-    "energy_regularization": 1e-3,
+    "energy_regularization": .001,
     "gradient_clip_val": 0.1,
     "learning_rate": 0.001,
     "learning_rate_scheduler": "None",
@@ -135,7 +137,8 @@ default_config = {
     "mcmc_kwargs": {
         "algorithm": "langevin_mcmc",
         "all_steps": False,
-        "n_mcmc_steps": 7,
+        "n_mcmc_steps": 10,
+        "gradient_clip_val": 1.0,
         "step_size": 1.0,  # Yilun says large step sizes e.g., 100.0, 10. are good.
         "kl_coeff": 0.0,
         "ratio_of_confabulated_samples_to_real_samples": 3,
