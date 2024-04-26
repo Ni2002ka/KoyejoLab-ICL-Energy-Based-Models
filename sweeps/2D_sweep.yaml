@@ -10,7 +10,7 @@ parameters:
       2,
     ]
   batch_size_train:
-    values: [32]
+    values: [12]
   batch_size_val:
     values: [1]
   check_val_every_n_epoch:
@@ -44,9 +44,9 @@ parameters:
       x_prior_kwargs:
         parameters:
           low:
-            values: [ -10.0 ]
+            values: [ -15.0 ]
           high:
-            values: [ 10.0 ]
+            values: [ 15.0 ]
       noise_prior:
         values: [ "isotropic_gaussian" ]
       noise_prior_kwargs:
@@ -119,11 +119,13 @@ parameters:
       n_mcmc_steps:
         values: [15]
       step_size:
-        values: [10.0, 1., 0.5, 0.01]
+        values: [1.0]
+      gradient_clip_val:
+        values: [10., 1.0 , 0.5]
       kl_coeff:
         values: [0.0]
       ratio_of_confabulated_samples_to_real_samples:
-        values: [3]
+        values: [3, 10, 30]
       replay_buffer:
         values: [False]
       replay_buffer_size:
@@ -145,9 +147,9 @@ parameters:
       n_layers:
         values: [6]
   n_batches_per_epoch:
-    values: [25]
+    values: [15]
   n_epochs:
-    values: [100]
+    values: [20]
   optimizer:
     values: ["adam"]
   precision:
