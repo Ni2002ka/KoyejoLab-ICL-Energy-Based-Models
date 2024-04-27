@@ -509,6 +509,9 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
         self.n_unique_datasets = self.wandb_config["dataset_kwargs"][
             "n_unique_datasets"
         ]
+        # n_unique_datasets can be a string, e.g., "inf"
+        if isinstance(self.n_unique_datasets, str):
+            self.n_unique_datasets = float("inf")
 
         self.n_samples_per_dataset = self.wandb_config["dataset_kwargs"][
             "n_samples_per_dataset"

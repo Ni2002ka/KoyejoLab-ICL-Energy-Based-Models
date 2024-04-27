@@ -1,4 +1,4 @@
-program: icl_ebm_train.py
+program: train.py
 project: icl-ebm
 method: grid
 metric:
