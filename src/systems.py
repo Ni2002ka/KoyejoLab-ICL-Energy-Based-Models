@@ -813,7 +813,7 @@ class TransformerModel(torch.nn.Module):
         embeds = self._read_in(data)
         output = self._backbone(inputs_embeds=embeds).last_hidden_state
         prediction = self._read_out(output)
-        return {"energy": prediction} # TODO: change this?
+        return {"energy": prediction}  # TODO: change this?
 
 
 class TransformerEnergyBasedModel(pl.LightningModule):
@@ -823,7 +823,7 @@ class TransformerEnergyBasedModel(pl.LightningModule):
         self.wandb_config = wandb_config
         if self.wandb_config["use_transformer"]:
             self.transformer = TransformerModel(
-                n_dims=2, # TODO: remove hardcoding
+                n_dims=2,  # TODO: remove hardcoding
                 n_positions=self.wandb_config["dataset_kwargs"][
                     "max_n_samples_in_context"
                 ],
@@ -832,14 +832,13 @@ class TransformerEnergyBasedModel(pl.LightningModule):
                 n_head=self.wandb_config["model_kwargs"]["n_heads"],
             )
         else:
-            self.transformer = NonGPTTransformer(
-                wandb_config, *args, ** kwargs
-            )
+            self.transformer = NonGPTTransformer(wandb_config, *args, **kwargs)
 
     def forward(self, data: torch.Tensor) -> Dict[str, torch.Tensor]:
         batch_size, seq_len, data_dim = data.shape
 
         return self.transformer.forward(data)
+
 
 class NonGPTTransformer(pl.LightningModule):
     def __init__(self, wandb_config: Dict[str, Any], *args: Any, **kwargs: Any) -> None:

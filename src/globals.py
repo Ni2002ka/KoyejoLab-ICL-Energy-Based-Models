@@ -59,7 +59,7 @@ default_config = {
         "standard_eval_dataset_kwargs": {
             "dataset": "linear_regression",
             # "dataset_length": 10000, n
-            "max_n_samples_in_context": 35, # TODO: changing this to 35 throws error
+            "max_n_samples_in_context": 35,  # TODO: changing this to 35 throws error
             "n_dimensions": 2,
             # "n_samples_per_dataset": float("inf"),
             "n_samples_per_dataset": 1000,
