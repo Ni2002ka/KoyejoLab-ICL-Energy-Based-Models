@@ -1,0 +1,23 @@
+name: icl_ebm
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.11
+  - black
+  - charset-normalizer
+  - h5py
+  - matplotlib
+  - lightning
+  - numpy
+  - pandas
+  - pytorch-cuda=12.1
+  - scipy
+  - scikit-learn
+  - scikit-image
+  - seaborn
+  - torchvision
+  - wandb
+  - pip
+    - nvidia-htop
