@@ -6,6 +6,7 @@ import torch.distributions
 import torch.nn
 import torch.nn.functional
 import torch.utils.data
+from transformers import GPT2Model, GPT2Config
 from typing import Any, Callable, Dict, List, Tuple, Union
 import wandb
 import src.data
@@ -770,7 +771,77 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
             return im_neg, im_neg_kl, im_grad
 
 
+# adapted from: https://github.com/dtsip/in-context-learning/blob/main/src/models.py
+class TransformerModel(torch.nn.Module):
+    def __init__(self, n_dims, n_positions, n_embd=128, n_layer=12, n_head=4):
+        super(TransformerModel, self).__init__()
+        configuration = GPT2Config(
+            n_positions=2 * n_positions,
+            n_embd=n_embd,
+            n_layer=n_layer,
+            n_head=n_head,
+            resid_pdrop=0.0,
+            embd_pdrop=0.0,
+            attn_pdrop=0.0,
+            use_cache=False,
+        )
+        self.name = f"gpt2_embd={n_embd}_layer={n_layer}_head={n_head}"
+
+        self.n_positions = n_positions
+        self.n_dims = n_dims
+        self._read_in = torch.nn.Linear(n_dims, n_embd)
+        self._backbone = GPT2Model(configuration)
+        self._read_out = torch.nn.Linear(n_embd, 1)
+
+    @staticmethod
+    def _combine(xs_b, ys_b):
+        """Interleaves the x's and the y's into a single sequence."""
+        bsize, points, dim = xs_b.shape
+        ys_b_wide = torch.cat(
+            (
+                ys_b.view(bsize, points, 1),
+                torch.zeros(bsize, points, dim - 1, device=ys_b.device),
+            ),
+            axis=2,
+        )
+        zs = torch.stack((xs_b, ys_b_wide), dim=2)
+        zs = zs.view(bsize, 2 * points, dim)
+        return zs
+
+    def forward(self, data: torch.Tensor):
+        # zs = self._combine(data[:, :, :-1], data[:, :, -1])
+        embeds = self._read_in(data)
+        output = self._backbone(inputs_embeds=embeds).last_hidden_state
+        prediction = self._read_out(output)
+        return {"energy": prediction} # TODO: change this?
+
+
 class TransformerEnergyBasedModel(pl.LightningModule):
+    def __init__(self, wandb_config: Dict[str, Any], *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.wandb_config = wandb_config
+        if self.wandb_config["use_transformer"]:
+            self.transformer = TransformerModel(
+                n_dims=2, # TODO: remove hardcoding
+                n_positions=self.wandb_config["dataset_kwargs"][
+                    "max_n_samples_in_context"
+                ],
+                n_embd=128,
+                n_layer=self.wandb_config["model_kwargs"]["n_layers"],
+                n_head=self.wandb_config["model_kwargs"]["n_heads"],
+            )
+        else:
+            self.transformer = NonGPTTransformer(
+                wandb_config, *args, ** kwargs
+            )
+
+    def forward(self, data: torch.Tensor) -> Dict[str, torch.Tensor]:
+        batch_size, seq_len, data_dim = data.shape
+
+        return self.transformer.forward(data)
+
+class NonGPTTransformer(pl.LightningModule):
     def __init__(self, wandb_config: Dict[str, Any], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
@@ -787,13 +858,10 @@ class TransformerEnergyBasedModel(pl.LightningModule):
             #            bias=True,
         )
         self.in_layer = torch.nn.Linear(
-            in_features=2,
+            in_features=2,  # TODO: remove this hardcoding
             out_features=self.wandb_config["model_kwargs"]["d_model"],
         )
-        self.transformer = torch.nn.TransformerEncoder(
-            encoder_layer=encoder_layer,
-            num_layers=self.wandb_config["model_kwargs"]["n_layers"],
-        )
+
         self.out_layer = torch.nn.Linear(
             in_features=self.wandb_config["model_kwargs"]["d_model"],
             out_features=1,
@@ -801,6 +869,11 @@ class TransformerEnergyBasedModel(pl.LightningModule):
 
         self.causal_mask = torch.nn.Transformer.generate_square_subsequent_mask(
             sz=self.wandb_config["dataset_kwargs"]["max_n_samples_in_context"],
+        )
+
+        self.transformer = torch.nn.TransformerEncoder(
+            encoder_layer=encoder_layer,
+            num_layers=self.wandb_config["model_kwargs"]["n_layers"],
         )
 
     def forward(self, data: torch.Tensor) -> Dict[str, torch.Tensor]:
@@ -822,46 +895,6 @@ class TransformerEnergyBasedModel(pl.LightningModule):
         }
 
         return forward_results
-
-
-# class EnergyFunctionHorizontalRectangle(pl.LightningModule):
-#
-#     def __init__(self,
-#                  min_x: float=-3.0,
-#                  max_x: float=3.0,
-#                  min_y: float=-1.0,
-#                  max_y: float=1.0,
-#                  ):
-#         super().__init__()
-#         self.min_x = min_x
-#         self.max_x = max_x
-#         self.min_y = min_y
-#         self.max_y = max_y
-#         self.area = (self.max_x - self.min_x) * (self.max_y - self.min_y)
-#
-#
-#     def forward(self, data: torch.Tensor) -> Dict[str, torch.Tensor]:
-#         raise NotImplementedError
-
-
-# class EnergyFunctionCauchy(pl.LightningModule):
-#     def __init__(
-#         self,
-#         loc: torch.Tensor,
-#         scale: torch.Tensor,
-#     ):
-#         super().__init__()
-#         self.loc = loc
-#         self.scale = scale
-#         self.prob_distribution = torch.distributions.Cauchy(
-#             loc=self.loc, scale=self.scale
-#         )
-
-#     def forward(self, data: torch.Tensor) -> Dict[str, torch.Tensor]:
-#         forward_results = {
-#             "energy": -self.prob_distribution.log_prob(data),
-#         }
-#         return forward_results
 
 
 class EnergyFunctionGaussian(pl.LightningModule):

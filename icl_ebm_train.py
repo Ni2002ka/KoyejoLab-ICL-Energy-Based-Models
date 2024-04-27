@@ -3,12 +3,11 @@ import os
 
 # Necessary for CUDA deterministic algorithms.
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-
 # Do this before importing GPU stuff to avoid defaults
 # For debugging, choose 1 GPU.
 if "CUDA_VISIBLE_DEVICES" not in os.environ:
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7,8,9"
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     # os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 
@@ -101,8 +100,8 @@ def main(wandb_config: Dict[str, Any]):
         # profiler="advanced",  # More advanced profiler.
         # profiler=PyTorchProfiler(filename=),  # PyTorch specific profiler
         precision=wandb_config["precision"],
-        # strategy="ddp_find_unused_parameters_true", #TODO: remove this for efficiency?
-        strategy="ddp",
+        strategy="ddp_find_unused_parameters_true",
+        # strategy="ddp",
         sync_batchnorm=True,
     )
     if wandb_config["compile_model"] and hasattr(torch, "compile"):

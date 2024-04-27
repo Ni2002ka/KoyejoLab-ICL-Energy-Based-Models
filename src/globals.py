@@ -48,7 +48,7 @@ default_config = {
             "low": -15.0,
             "high": 15.0,
         },
-        "data_std_dev": .5,
+        "data_std_dev": 0.5,
         "noise_prior": "isotropic_gaussian",
         "noise_prior_kwargs": {
             "mean": 0.0,
@@ -58,8 +58,8 @@ default_config = {
     "eval_datasets": {
         "standard_eval_dataset_kwargs": {
             "dataset": "linear_regression",
-            # "dataset_length": 10000,
-            "max_n_samples_in_context": 35,
+            # "dataset_length": 10000, n
+            "max_n_samples_in_context": 35, # TODO: changing this to 35 throws error
             "n_dimensions": 2,
             # "n_samples_per_dataset": float("inf"),
             "n_samples_per_dataset": 1000,
@@ -80,7 +80,7 @@ default_config = {
                 "low": -10.0,
                 "high": 10.0,
             },
-            "data_std_dev": .5,
+            "data_std_dev": 0.5,
             "noise_prior": "isotropic_gaussian",
             "noise_prior_kwargs": {
                 "mean": 0.0,
@@ -129,7 +129,7 @@ default_config = {
     "eval_kwargs": {
         "n_meshgrid_points_in_1D_slice": 13,
     },
-    "energy_regularization": .001,
+    "energy_regularization": 0.001,
     "gradient_clip_val": 0.1,
     "learning_rate": 0.001,
     "learning_rate_scheduler": "None",
@@ -147,6 +147,7 @@ default_config = {
         "resampling_rate": 0.001,
         "noise_scale": 2.0,
     },
+    "use_transformer": True,
     "model_kwargs": {
         "activation": "gelu",
         "d_model": 64,
