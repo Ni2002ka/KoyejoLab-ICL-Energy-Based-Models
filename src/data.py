@@ -501,6 +501,8 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
 
         self.wandb_config = wandb_config
         self.n_dimensions = self.wandb_config["dataset_kwargs"]["n_dimensions"]
+        # We need the number of dimensions to be at least 2 for the covariate and the target.
+        assert self.n_dimensions > 1
         self.n_samples_per_dataset = self.wandb_config["dataset_kwargs"][
             "n_samples_per_dataset"
         ]
@@ -651,9 +653,13 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
             + self.noise_prior_mean
         )
 
+        sampling_update_mask = torch.zeros_like(initial_sampled_data)
+        sampling_update_mask[:, :, -1] = 1.0
+
         return {
             "real_data": in_context_data,
             "initial_sampled_data": initial_sampled_data,
+            "sampling_update_mask": sampling_update_mask,
         }
 
     def __len__(self):

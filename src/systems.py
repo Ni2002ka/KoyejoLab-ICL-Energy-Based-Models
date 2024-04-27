@@ -94,6 +94,9 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                 initial_sampled_data = batch["initial_sampled_data"].to(
                     pl_module.device
                 )
+                sampling_update_mask = batch["sampling_update_mask"].to(
+                    pl_module.device
+                )
 
                 # ground_truth_energy = EnergyFunctionMixtureOfGaussians(
                 #     means=batch["means"][0].to(pl_module.device),
@@ -150,6 +153,7 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                         pl_module.sample_data_with_langevin_mcmc(
                             real_data=real_data,
                             initial_sampled_data=initial_sampled_data,
+                            sampling_update_mask=sampling_update_mask,
                             noise_scale=0.1,
                         )
                     )
@@ -242,8 +246,7 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
 
         if self.wandb_config["mcmc_kwargs"]["replay_buffer"]:
             raise NotImplementedError("Replay buffer not implemented yet.")
-
-        self.transformer_ebm = TransformerEnergyBasedModel(wandb_config=wandb_config)
+        self.transformer_ebm = EnergyBasedTransformerModel(wandb_config=wandb_config)
 
     def configure_optimizers(self) -> Dict:
         # https://pytorch-lightning.readthedocs.io/en/latest/common/lightning_module.html#configure-optimizers
@@ -349,6 +352,7 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
         # ############################################################
         # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, n in-context examples, data shape...)
         initial_sampled_data = batch["initial_sampled_data"]
+        sampling_update_mask = batch["sampling_update_mask"]
         # Reshape to merge the first two dimensions.
         (
             batch_size,
@@ -364,11 +368,15 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
 
         if self.wandb_config["mcmc_kwargs"]["algorithm"] == "langevin_mcmc":
             sampled_data_results_dict = self.sample_data_with_langevin_mcmc(
-                real_data=real_data, initial_sampled_data=initial_sampled_data
+                real_data=real_data,
+                initial_sampled_data=initial_sampled_data,
+                sampling_update_mask=sampling_update_mask,
             )
         elif self.wandb_config["mcmc_kwargs"]["algorithm"] == "hamiltonian_mcmc":
             sampled_data_results_dict = self.sample_data_with_hamiltoinan_mcmc(
-                real_data=real_data, initial_sampled_data=initial_sampled_data
+                real_data=real_data,
+                initial_sampled_data=initial_sampled_data,
+                sampling_update_mask=sampling_update_mask,
             )
         else:
             raise ValueError("Invalid MCMC algorithm.")
@@ -549,6 +557,7 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
         self,
         real_data: torch.Tensor,
         initial_sampled_data: torch.Tensor,
+        sampling_update_mask: torch.Tensor,
         noise_scale: float = None,
     ) -> Dict[str, torch.Tensor]:
         if noise_scale is None:
@@ -604,6 +613,7 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
                     )[0]
 
                     # Clamp gradient to avoid exploding gradients.
+                    # Shape: (batch size, 1, data dim)
                     sampled_datum_grad = torch.clamp(
                         sampled_datum_grad,
                         -self.wandb_config["mcmc_kwargs"]["gradient_clip_val"],
@@ -615,6 +625,7 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
                         sampled_datum
                         - noise_scale  # step size has to be half of the noise scale
                         * sampled_datum_grad
+                        * sampling_update_mask[:, confab_idx, seq_idx, :]
                         / 2.0
                     )
 
@@ -629,7 +640,10 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
         return results
 
     def sample_data_with_hamiltoinan_mcmc(
-        self, real_data: torch.Tensor, initial_sampled_data: torch.Tensor
+        self,
+        real_data: torch.Tensor,
+        initial_sampled_data: torch.Tensor,
+        sampling_update_mask: torch.Tensor,
     ) -> Dict[str, torch.Tensor]:
         # results = {
         #     "final_sampled_data": sampled_data,
@@ -771,68 +785,23 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
             return im_neg, im_neg_kl, im_grad
 
 
-# adapted from: https://github.com/dtsip/in-context-learning/blob/main/src/models.py
-class TransformerModel(torch.nn.Module):
-    def __init__(self, n_dims, n_positions, n_embd=128, n_layer=12, n_head=4):
-        super(TransformerModel, self).__init__()
-        configuration = GPT2Config(
-            n_positions=2 * n_positions,
-            n_embd=n_embd,
-            n_layer=n_layer,
-            n_head=n_head,
-            resid_pdrop=0.0,
-            embd_pdrop=0.0,
-            attn_pdrop=0.0,
-            use_cache=False,
-        )
-        self.name = f"gpt2_embd={n_embd}_layer={n_layer}_head={n_head}"
-
-        self.n_positions = n_positions
-        self.n_dims = n_dims
-        self._read_in = torch.nn.Linear(n_dims, n_embd)
-        self._backbone = GPT2Model(configuration)
-        self._read_out = torch.nn.Linear(n_embd, 1)
-
-    @staticmethod
-    def _combine(xs_b, ys_b):
-        """Interleaves the x's and the y's into a single sequence."""
-        bsize, points, dim = xs_b.shape
-        ys_b_wide = torch.cat(
-            (
-                ys_b.view(bsize, points, 1),
-                torch.zeros(bsize, points, dim - 1, device=ys_b.device),
-            ),
-            axis=2,
-        )
-        zs = torch.stack((xs_b, ys_b_wide), dim=2)
-        zs = zs.view(bsize, 2 * points, dim)
-        return zs
-
-    def forward(self, data: torch.Tensor):
-        # zs = self._combine(data[:, :, :-1], data[:, :, -1])
-        embeds = self._read_in(data)
-        output = self._backbone(inputs_embeds=embeds).last_hidden_state
-        prediction = self._read_out(output)
-        return {"energy": prediction}  # TODO: change this?
-
-
-class TransformerEnergyBasedModel(pl.LightningModule):
+class EnergyBasedTransformerModel(pl.LightningModule):
     def __init__(self, wandb_config: Dict[str, Any], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self.wandb_config = wandb_config
-        if self.wandb_config["use_transformer"]:
-            self.transformer = TransformerModel(
-                n_dims=2,  # TODO: remove hardcoding
-                n_positions=self.wandb_config["dataset_kwargs"][
-                    "max_n_samples_in_context"
-                ],
-                n_embd=128,
-                n_layer=self.wandb_config["model_kwargs"]["n_layers"],
-                n_head=self.wandb_config["model_kwargs"]["n_heads"],
+        if self.wandb_config["which_transformer"] == "huggingface":
+            self.transformer = TransformerModelHuggingface(
+                wandb_config=wandb_config,
+            )
+        elif self.wandb_config["which_transformer"] == "pytorch":
+            self.transformer = TransformerModelPytorch(
+                wandb_config=wandb_config, *args, **kwargs
             )
         else:
-            self.transformer = NonGPTTransformer(wandb_config, *args, **kwargs)
+            raise ValueError(
+                f"Invalid transformer: {self.wandb_config['which_transformer']}"
+            )
 
     def forward(self, data: torch.Tensor) -> Dict[str, torch.Tensor]:
         batch_size, seq_len, data_dim = data.shape
@@ -840,7 +809,45 @@ class TransformerEnergyBasedModel(pl.LightningModule):
         return self.transformer.forward(data)
 
 
-class NonGPTTransformer(pl.LightningModule):
+# adapted from: https://github.com/dtsip/in-context-learning/blob/main/src/models.py
+class TransformerModelHuggingface(pl.LightningModule):
+    def __init__(self, wandb_config: Dict[str, Any], *args: Any, **kwargs: Any) -> None:
+        super(TransformerModelHuggingface, self).__init__()
+        self.wandb_config = wandb_config
+        config = GPT2Config(
+            n_positions=self.wandb_config["dataset_kwargs"]["max_n_samples_in_context"],
+            n_embd=self.wandb_config["model_kwargs"]["d_embed"],
+            n_layer=self.wandb_config["model_kwargs"]["n_layers"],
+            n_head=self.wandb_config["model_kwargs"]["n_heads"],
+            resid_pdrop=self.wandb_config["model_kwargs"]["resid_pdrop"],
+            embd_pdrop=self.wandb_config["model_kwargs"]["embd_pdrop"],
+            attn_pdrop=self.wandb_config["model_kwargs"]["attn_pdrop"],
+            use_cache=False,
+        )
+
+        self.in_layer = torch.nn.Linear(
+            in_features=self.wandb_config["dataset_kwargs"]["n_dimensions"],
+            out_features=self.wandb_config["model_kwargs"]["d_embed"],
+        )
+
+        self.out_layer = torch.nn.Linear(
+            in_features=self.wandb_config["model_kwargs"]["d_embed"],
+            out_features=1,
+        )
+        self.transformer = GPT2Model(config=config)
+
+    def forward(self, data: torch.Tensor):
+        # Data has shape: Shape: (batch size, max seq len, data dim + potentially 1 if doing linear regression)
+
+        # Shape: (batch size, max seq len, data dim)
+        embeds = self.in_layer(data)
+        # Shape: (batch size, max seq len, d_embed)
+        output = self.transformer(inputs_embeds=embeds).last_hidden_state
+        prediction = self.out_layer(output)
+        return {"energy": prediction}  # TODO: change this?
+
+
+class TransformerModelPytorch(pl.LightningModule):
     def __init__(self, wandb_config: Dict[str, Any], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
@@ -849,20 +856,20 @@ class NonGPTTransformer(pl.LightningModule):
         # https://discuss.pytorch.org/t/nn-transformerdecoderlayer-without-encoder-input/183990/2
         encoder_layer = torch.nn.TransformerEncoderLayer(
             activation=self.wandb_config["model_kwargs"]["activation"],
-            d_model=self.wandb_config["model_kwargs"]["d_model"],
+            d_model=self.wandb_config["model_kwargs"]["d_embed"],
             nhead=self.wandb_config["model_kwargs"]["n_heads"],
             dropout=self.wandb_config["model_kwargs"]["dropout"],
             batch_first=True,
             norm_first=True,
-            #            bias=True,
+            bias=self.wandb_config["model_kwargs"]["bias"],
         )
         self.in_layer = torch.nn.Linear(
-            in_features=2,  # TODO: remove this hardcoding
-            out_features=self.wandb_config["model_kwargs"]["d_model"],
+            in_features=self.wandb_config["dataset_kwargs"]["n_dimensions"],
+            out_features=self.wandb_config["model_kwargs"]["d_embed"],
         )
 
         self.out_layer = torch.nn.Linear(
-            in_features=self.wandb_config["model_kwargs"]["d_model"],
+            in_features=self.wandb_config["model_kwargs"]["d_embed"],
             out_features=1,
         )
 
@@ -877,22 +884,21 @@ class NonGPTTransformer(pl.LightningModule):
 
     def forward(self, data: torch.Tensor) -> Dict[str, torch.Tensor]:
         batch_size, seq_len, data_dim = data.shape
-
+        # Shape: (batch size, seq len, d_embed)
         in_layer_outputs = self.in_layer(data)
-
+        # Shape: (seq len, batch size, d_embed)
         transformer_outputs = self.transformer(
             src=in_layer_outputs,
             mask=self.causal_mask[:seq_len, :seq_len],  # Take only the length we need.
             is_causal=True,
         )
+        # Shape: (batch size, seq len, 1)
         out_layer_outputs = self.out_layer(transformer_outputs)
-
         forward_results = {
             "in_layer_outputs": in_layer_outputs,
             "transformer_output": transformer_outputs,
             "energy": out_layer_outputs,
         }
-
         return forward_results
 
 
