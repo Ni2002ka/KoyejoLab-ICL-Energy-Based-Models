@@ -65,6 +65,11 @@ default_config = {
             "n_samples_per_dataset": 1000,
             # "n_unique_datasets": float("inf"),
             "n_unique_datasets": 10,
+            "noise_prior": "isotropic_gaussian",
+            "noise_prior_kwargs": {
+                "mean": 0.0,
+                "std_dev": 5.0,
+            },
             "w_prior": "isotropic_gaussian",
             "w_prior_kwargs": {
                 "mean": 0.0,
@@ -81,11 +86,6 @@ default_config = {
                 "high": 10.0,
             },
             "data_std_dev": 0.5,
-            "noise_prior": "isotropic_gaussian",
-            "noise_prior_kwargs": {
-                "mean": 0.0,
-                "std_dev": 5.0,
-            },
         },
         # "num_gaussian_eval_dataset_kwargs": {
         #     "dataset": "mixture_of_gaussians",

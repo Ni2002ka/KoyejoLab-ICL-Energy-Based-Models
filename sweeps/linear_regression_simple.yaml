@@ -51,38 +51,44 @@ parameters:
     values: [0.0, 1e-3]
   eval_datasets:
     parameters:
-      n_components_eq_1:
+      standard_eval_dataset_kwargs:
         parameters:
           dataset:
             values: [
-              "mixture_of_gaussians",
+              "linear_regression",
             ]
           max_n_samples_in_context:
-            values: [ 40 ]
-          n_components:
-            values: [ 1 ]
+            values: [ 30 ]
           n_dimensions:
             values: [ 2 ]
           n_samples_per_dataset:
             values: [ 1000 ]
           n_unique_datasets:
-            values: [ 1 ]
-          prior:
-            values: [ "gaussian" ]
-          prior_kwargs:
+            values: [ 10 ]
+          w_prior:
+            values: ["isotropic_gaussian"]
+          w_prior_kwargs:
             parameters:
               mean:
-                values: [ 0.0 ]
+                  values: [0.0]
               std_dev:
-                values: [ 5.0 ]
-          component:
-            values: [ "gaussian" ]
-          component_kwargs:
+                  values: [5.0]
+          x_prior:
+            values: ["uniform"]
+          x_prior_kwargs:
+            parameters:
+              low:
+                values: [-10.0]
+              high:
+                values: [10.0]
+          noise_prior:
+            values: ["isotropic_gaussian"]
+          noise_prior_kwargs:
             parameters:
               mean:
-                values: [ 0.0 ]
+                  values: [0.0]
               std_dev:
-                values: [ 0.5 ]
+                  values: [0.5]
   eval_kwargs:
     parameters:
       n_meshgrid_points_in_1D_slice:
