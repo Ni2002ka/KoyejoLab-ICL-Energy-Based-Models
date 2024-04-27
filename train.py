@@ -156,4 +156,4 @@ if __name__ == "__main__":
     # Pretrain and evaluate!
     main(wandb_config=wandb_config)
 
-    print("Done!")
+    print(f"Done training W&B run={run.id}!")

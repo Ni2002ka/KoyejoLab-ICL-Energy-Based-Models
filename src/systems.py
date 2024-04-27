@@ -804,8 +804,6 @@ class EnergyBasedTransformerModel(pl.LightningModule):
             )
 
     def forward(self, data: torch.Tensor) -> Dict[str, torch.Tensor]:
-        batch_size, seq_len, data_dim = data.shape
-
         return self.transformer.forward(data)
 
 
@@ -814,8 +812,18 @@ class TransformerModelHuggingface(pl.LightningModule):
     def __init__(self, wandb_config: Dict[str, Any], *args: Any, **kwargs: Any) -> None:
         super(TransformerModelHuggingface, self).__init__()
         self.wandb_config = wandb_config
+        # Figure out the maximum sequence length that we'll need for train & eval.
+        self.n_positions = max(
+            [self.wandb_config["dataset_kwargs"]["max_n_samples_in_context"]]
+            + [
+                self.wandb_config["eval_datasets"][eval_dataset_name][
+                    "max_n_samples_in_context"
+                ]
+                for eval_dataset_name in self.wandb_config["eval_datasets"]
+            ]
+        )
         config = GPT2Config(
-            n_positions=self.wandb_config["dataset_kwargs"]["max_n_samples_in_context"],
+            n_positions=self.n_positions,
             n_embd=self.wandb_config["model_kwargs"]["d_embed"],
             n_layer=self.wandb_config["model_kwargs"]["n_layers"],
             n_head=self.wandb_config["model_kwargs"]["n_heads"],
@@ -837,14 +845,21 @@ class TransformerModelHuggingface(pl.LightningModule):
         self.transformer = GPT2Model(config=config)
 
     def forward(self, data: torch.Tensor):
-        # Data has shape: Shape: (batch size, max seq len, data dim + potentially 1 if doing linear regression)
+        # Data has shape: Shape: (batch size, seq len, data dim)
 
-        # Shape: (batch size, max seq len, data dim)
-        embeds = self.in_layer(data)
-        # Shape: (batch size, max seq len, d_embed)
-        output = self.transformer(inputs_embeds=embeds).last_hidden_state
-        prediction = self.out_layer(output)
-        return {"energy": prediction}  # TODO: change this?
+        # Shape: (batch size, seq len, data dim)
+        in_layer_outputs = self.in_layer(data)
+        # Shape: (batch size, seq len, d_embed)
+        transformer_outputs = self.transformer(
+            inputs_embeds=in_layer_outputs
+        ).last_hidden_state
+        out_layer_outputs = self.out_layer(transformer_outputs)
+        forward_results = {
+            "in_layer_outputs": in_layer_outputs,
+            "transformer_output": transformer_outputs,
+            "energy": out_layer_outputs,
+        }
+        return forward_results
 
 
 class TransformerModelPytorch(pl.LightningModule):
@@ -886,7 +901,7 @@ class TransformerModelPytorch(pl.LightningModule):
         batch_size, seq_len, data_dim = data.shape
         # Shape: (batch size, seq len, d_embed)
         in_layer_outputs = self.in_layer(data)
-        # Shape: (seq len, batch size, d_embed)
+        # Shape: (batch size, seq len, d_embed)
         transformer_outputs = self.transformer(
             src=in_layer_outputs,
             mask=self.causal_mask[:seq_len, :seq_len],  # Take only the length we need.

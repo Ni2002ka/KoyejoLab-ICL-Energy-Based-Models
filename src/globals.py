@@ -59,7 +59,7 @@ default_config = {
         "standard_eval_dataset_kwargs": {
             "dataset": "linear_regression",
             # "dataset_length": 10000, n
-            "max_n_samples_in_context": 35,  # TODO: changing this to 35 throws error
+            "max_n_samples_in_context": 35,
             "n_dimensions": 2,
             # "n_samples_per_dataset": float("inf"),
             "n_samples_per_dataset": 1000,
@@ -169,6 +169,6 @@ default_config = {
     "precision": "bf16-mixed",  # Supported on CPU. 16-mixed is not.
     "seed": 0,
     "weight_decay": 1e-5,
-    # "which_transformer": "huggingface",
-    "which_transformer": "pytorch",
+    "which_transformer": "huggingface",
+    # "which_transformer": "pytorch",
 }
