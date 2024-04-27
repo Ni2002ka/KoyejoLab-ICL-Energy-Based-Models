@@ -1,0 +1,153 @@
+program: icl_ebm_train.py
+project: icl-ebm
+method: grid
+metric:
+  goal: minimize
+  name: total_loss
+parameters:
+  accumulate_grad_batches:
+    values: [
+      2,
+    ]
+  batch_size_train:
+    values: [32]
+  batch_size_val:
+    values: [1]
+  check_val_every_n_epoch:
+    values: [5]
+  compile_model:
+    values: [False]
+  dataset_kwargs:
+    parameters:
+      dataset:
+        values: [
+          "linear_regression",
+        ]
+      max_n_samples_in_context:
+        values: [ 30 ]
+      n_dimensions:
+        values: [2]
+      n_samples_per_dataset:
+        values: [1000]
+      n_unique_datasets:
+        values: [10, 36, 100, 361, 1000]
+      prior:
+        values: ["gaussian"]
+      prior_kwargs:
+        parameters:
+          mean:
+            values: [0.0]
+          std_dev:
+            values: [5.0]
+      component:
+        values: ["gaussian"]
+      component_kwargs:
+        parameters:
+          mean:
+            values: [0.0]
+          std_dev:
+            values: [ 0.5 ]
+  energy_regularization:
+    values: [0.0, 1e-3]
+  eval_datasets:
+    parameters:
+      n_components_eq_1:
+        parameters:
+          dataset:
+            values: [
+              "mixture_of_gaussians",
+            ]
+          max_n_samples_in_context:
+            values: [ 40 ]
+          n_components:
+            values: [ 1 ]
+          n_dimensions:
+            values: [ 2 ]
+          n_samples_per_dataset:
+            values: [ 1000 ]
+          n_unique_datasets:
+            values: [ 1 ]
+          prior:
+            values: [ "gaussian" ]
+          prior_kwargs:
+            parameters:
+              mean:
+                values: [ 0.0 ]
+              std_dev:
+                values: [ 5.0 ]
+          component:
+            values: [ "gaussian" ]
+          component_kwargs:
+            parameters:
+              mean:
+                values: [ 0.0 ]
+              std_dev:
+                values: [ 0.5 ]
+  eval_kwargs:
+    parameters:
+      n_meshgrid_points_in_1D_slice:
+        values: [ 35 ]
+  gradient_clip_val:
+    values: [0.1]
+  learning_rate:
+    values: [0.001]
+  learning_rate_scheduler:
+    values: ["None"]
+  log_every_n_steps:
+    values: [1]
+  mcmc_kwargs:
+    parameters:
+      algorithm:
+        values: ["langevin_mcmc"]
+      all_steps:
+        values: [False]
+      n_mcmc_steps:
+        values: [15]
+      step_size:
+        values: [3.16, 1.0, 0.1, 10.0, 0.316]
+      kl_coeff:
+        values: [0.0]
+      ratio_of_confabulated_samples_to_real_samples:
+        values: [3]
+      replay_buffer:
+        values: [False]
+      replay_buffer_size:
+        values: [10000]
+      resampling_rate:
+        values: [0.001]
+      noise_scale:
+        values: [0.01]
+  model_kwargs:
+    parameters:
+      activation:
+        values: ["gelu"]
+      bias:
+        values: [True]
+      d_embed:
+        values: [128]
+      dropout:
+        values: [0.0]
+      n_heads:
+        values: [8]
+      n_layers:
+        values: [6]
+      resid_pdrop:
+        values: [0.0]
+      embd_pdrop:
+        values: [0.0]
+      attn_pdrop:
+        values: [0.0]
+  n_batches_per_epoch:
+    values: [25]
+  n_epochs:
+    values: [100]
+  optimizer:
+    values: ["adam"]
+  precision:
+    values: ["bf16-mixed"]
+  seed:
+    values: [0, 1, 2]
+  weight_decay:
+    values: [1e-5]
+  which_transformer:
+    values: ["huggingface", "pytorch"]

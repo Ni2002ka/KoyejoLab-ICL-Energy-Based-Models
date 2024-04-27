@@ -50,27 +50,19 @@ def main(wandb_config: Dict[str, Any]):
 
     wandb_logger = WandbLogger(experiment=run)
 
-    icl_ebm_system = InContextLearningEnergyBasedModelSystem(
-        wandb_config=wandb_config, wandb_logger=wandb_logger
-    )
-
-    datamodule = InContextLearningEnergyBasedModelDataModule(
-        wandb_config=wandb_config,
-    )
-
     # TODO: keep this?
-    torch.set_float32_matmul_precision("high")
+    torch.set_float32_matmul_precision("medium")
     # https://pytorch-lightning.readthedocs.io/en/latest/api/pytorch_lightning.trainer.trainer.Trainer.html
     trainer = pl.Trainer(
         accumulate_grad_batches=wandb_config["accumulate_grad_batches"],
         callbacks=[
-            ModelCheckpoint(
-                monitor="train/total_loss",
-                save_top_k=1,
-                mode="min",
-                save_on_train_epoch_end=True,
-                dirpath=run_checkpoint_dir,
-            ),
+            # ModelCheckpoint(
+            #     monitor="train/total_loss",
+            #     save_top_k=1,
+            #     mode="min",
+            #     save_on_train_epoch_end=True,
+            #     dirpath=run_checkpoint_dir,
+            # ),
             # DeviceStatsMonitor(),
             # Stop if training loss diverges.
             # EarlyStopping(
@@ -85,8 +77,7 @@ def main(wandb_config: Dict[str, Any]):
         default_root_dir=run_checkpoint_dir,
         deterministic=True,
         accelerator="gpu" if torch.cuda.is_available() else "cpu",
-        devices=-1,  # use all available GPUs
-        # strategy='ddp',
+        devices="auto",  # use all available GPUs
         # fast_dev_run=True,
         # fast_dev_run=False,
         logger=wandb_logger,
@@ -96,7 +87,7 @@ def main(wandb_config: Dict[str, Any]):
         max_epochs=wandb_config["n_epochs"],
         num_sanity_val_steps=0,  # -1 means runs all of validation before starting to train.
         # limit_train_batches=0.01,
-        profiler="simple",  # Simplest profiler.
+        # profiler="simple",  # Simplest profiler.
         # profiler="advanced",  # More advanced profiler.
         # profiler=PyTorchProfiler(filename=),  # PyTorch specific profiler
         precision=wandb_config["precision"],
@@ -104,6 +95,18 @@ def main(wandb_config: Dict[str, Any]):
         # strategy="ddp",
         sync_batchnorm=True,
     )
+
+    # https://lightning.ai/docs/pytorch/stable/common/precision_intermediate.html
+    # "Tip: For faster initialization, you can create model parameters with the desired dtype directly on the device:"
+    with trainer.init_module():
+        icl_ebm_system = InContextLearningEnergyBasedModelSystem(
+            wandb_config=wandb_config, wandb_logger=wandb_logger
+        )
+
+    datamodule = InContextLearningEnergyBasedModelDataModule(
+        wandb_config=wandb_config,
+    )
+
     if wandb_config["compile_model"] and hasattr(torch, "compile"):
         # Compile model if PyTorch supports it.
         print("Milestone: Compiling pretrain system...")
