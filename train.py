@@ -44,14 +44,23 @@ from src.systems import (
 )
 import src.utils
 
+torch.set_float32_matmul_precision("medium")
+
 
 def main(wandb_config: Dict[str, Any]):
     set_seed(seed=wandb_config["seed"])
 
     wandb_logger = WandbLogger(experiment=run)
 
-    # TODO: keep this?
-    torch.set_float32_matmul_precision("medium")
+    if torch.cuda.is_available():
+        accelerator = "gpu"
+        devices = torch.cuda.device_count()
+        print("GPUs available: ", devices)
+    else:
+        accelerator = "cpu"
+        devices = "auto"
+        print("No GPU available.")
+
     # https://pytorch-lightning.readthedocs.io/en/latest/api/pytorch_lightning.trainer.trainer.Trainer.html
     trainer = pl.Trainer(
         accumulate_grad_batches=wandb_config["accumulate_grad_batches"],
@@ -76,8 +85,8 @@ def main(wandb_config: Dict[str, Any]):
         # check_val_every_n_epoch=wandb_config["check_val_every_n_epoch"],
         default_root_dir=run_checkpoint_dir,
         deterministic=True,
-        accelerator="gpu" if torch.cuda.is_available() else "cpu",
-        devices="auto",  # use all available GPUs
+        accelerator=accelerator,
+        devices=devices,
         # fast_dev_run=True,
         # fast_dev_run=False,
         logger=wandb_logger,

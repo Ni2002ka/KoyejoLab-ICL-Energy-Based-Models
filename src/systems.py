@@ -185,9 +185,7 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                     transformer_sampled_data_results_dict["final_sampled_data"][
                         :, :, :, -1
                     ],
-                    true_sampled_data_results_dict["final_sampled_data"][
-                        :, :, -1
-                    ].unsqueeze(0),
+                    real_data[:, np.newaxis, :, -1],  # insert confabulation axis.
                 )
 
                 # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, max seq length)
@@ -621,11 +619,12 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
                     )
 
                     # Update the sampled datum following: x   <-   x - nabla_x E(x, D).
+                    # Shape: (batch size, 1, data dim)
                     sampled_datum = (
                         sampled_datum
                         - noise_scale  # step size has to be half of the noise scale
                         * sampled_datum_grad
-                        * sampling_update_mask[:, confab_idx, seq_idx, :]
+                        * sampling_update_mask[:, confab_idx, seq_idx, np.newaxis, :]
                         / 2.0
                     )
 
