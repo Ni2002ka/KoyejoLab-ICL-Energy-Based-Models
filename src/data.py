@@ -649,25 +649,20 @@ class LinearRegressionsDataset(torch.utils.data.Dataset):
         # Draw noise from Gaussian
         # Shape: (ratio of confab samples, max seq length, data dim)
         initial_sampled_data = (
-            torch.clone(in_context_data)
-            .reshape(1, *in_context_data.shape)
-            .repeat((self.ratio_of_confabulated_samples_to_real_samples, 1, 1))
-        )
-        # Shape: (batch size, max seq length, 1)
-        sampled_y = (
             self.noise_prior_std_dev
             * torch.randn(
                 (
                     self.ratio_of_confabulated_samples_to_real_samples,
                     self.n_samples_in_context,
-                    1,
+                    self.n_dimensions,
                 )
             )
             + self.noise_prior_mean
         )
-        # Overwrite the randomly sampled y values.
-        initial_sampled_data[:, :, -1:] = sampled_y
+        # Overwrite the randomly sampled x values with the real x values.
+        initial_sampled_data[:, :, :-1] = in_context_data[np.newaxis, :, :-1]
 
+        # Shape: (ratio of confab samples, max seq length, data dim)
         sampling_update_mask = torch.zeros_like(initial_sampled_data)
         sampling_update_mask[:, :, -1] = 1.0
 

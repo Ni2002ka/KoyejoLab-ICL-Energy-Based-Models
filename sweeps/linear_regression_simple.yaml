@@ -14,7 +14,7 @@ parameters:
   batch_size_val:
     values: [1]
   check_val_every_n_epoch:
-    values: [5]
+    values: [1]
   compile_model:
     values: [False]
   dataset_kwargs:

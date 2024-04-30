@@ -223,7 +223,8 @@ def plot_linear_regression_in_context_error_vs_n_in_context_examples(
     )
     plt.xlabel("Num of In-Context Examples")
     plt.ylabel(r"$||y - \hat{y} ||^2$")
-    plt.ylim(bottom=0.0)
+    plt.yscale("log")
+    # plt.ylim(bottom=0.0)
     # plt.show()
 
     # https://docs.wandb.ai/guides/track/log/plots#matplotlib-and-plotly-plots

@@ -574,7 +574,6 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
             (batch_size, 1, data_dim), device=self.device
         ).detach()
 
-        # real_data_energy = self.model.forward(real_data)["energy"]
         # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, n in-context examples, data shape...)
         sampled_data = torch.clone(initial_sampled_data)
         # TODO: Figure out way to vectorize this with transformer.
@@ -592,16 +591,21 @@ class InContextLearningEnergyBasedModelSystem(pl.LightningModule):
                     additive_noise.normal_()
 
                     # Add the additive Gaussian noise to the last element of the sequence.
-                    sampled_datum = sampled_datum + noise_scale * additive_noise
+                    sampled_datum = (
+                        sampled_datum
+                        + noise_scale
+                        * additive_noise
+                        * sampling_update_mask[:, confab_idx, seq_idx, np.newaxis, :]
+                    )
 
                     # Shape: (batch size, step idx + 1, data dim)
-                    real_data_up_to_seq_idx_followed_by_sampled_data = torch.cat(
+                    real_data_up_to_seq_idx_followed_by_sampled_datum = torch.cat(
                         [real_data[:, :seq_idx, :], sampled_datum], dim=1
                     )
 
                     # Shape: (batch size, step idx + 1, 1)
                     energy = self.transformer_ebm.forward(
-                        real_data_up_to_seq_idx_followed_by_sampled_data
+                        real_data_up_to_seq_idx_followed_by_sampled_datum
                     )["energy"]
 
                     # Compute the gradient with respect to the single input datum we're sampling.
