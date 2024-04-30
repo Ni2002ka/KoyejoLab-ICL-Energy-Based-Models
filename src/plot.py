@@ -26,6 +26,9 @@ def plot_dataset_2D_energy_landscapes(
     meshgrid_points_per_slice = int(np.sqrt(total_meshgrid_points))
     meshgrid_max_abs_val = 1.1 * np.max(np.abs(meshgrid))
 
+    # Center the energy landscape at zero for each batch index.
+    energy_landscape -= np.mean(energy_landscape, axis=(1, 2, 3), keepdims=True)
+
     n_subfigures = int(np.ceil(max_seq_len / n_steps_between_time_indices))
     for batch_idx in range(n_batch_elements_to_plot):
         plt.close()
@@ -38,6 +41,15 @@ def plot_dataset_2D_energy_landscapes(
             constrained_layout=True,
         )
         mappable = None
+        extreme_energy_val = np.max(np.abs(energy_landscape[batch_idx]))
+        norm = colors.SymLogNorm(
+            linthresh=1.0,
+            vmin=-extreme_energy_val,
+            vmax=extreme_energy_val,
+            base=10,
+        )
+        sm = plt.cm.ScalarMappable(norm=norm, cmap="coolwarm")
+        sm.set_array([])
         for ax_idx, seq_idx in enumerate(
             range(0, max_seq_len, n_steps_between_time_indices)
         ):
@@ -50,11 +62,7 @@ def plot_dataset_2D_energy_landscapes(
                 ),
                 levels=100,
                 cmap="coolwarm",
-                norm=colors.SymLogNorm(
-                    linthresh=0.03,
-                    vmin=np.min(energy_landscape[batch_idx]),
-                    vmax=np.max(energy_landscape[batch_idx]),
-                ),
+                norm=norm,
             )
             ax.scatter(
                 x=real_data[batch_idx, :seq_idx, 0],
@@ -69,8 +77,7 @@ def plot_dataset_2D_energy_landscapes(
             ax.set_ylim(-meshgrid_max_abs_val, meshgrid_max_abs_val)
             ax.set_title(r"$E(x|D)$" + f" at n={seq_idx}")
             ax.set_aspect("equal")
-        if mappable is not None:
-            fig.colorbar(mappable, ax=axes, label="Energy", orientation="vertical")
+        fig.colorbar(sm, ax=ax, label="Energy (SymLog)", orientation="vertical")
         if wandb_logger is not None:
             wandb_logger.log_image(
                 key=wandb_key + "_batch_idx=" + str(batch_idx),
