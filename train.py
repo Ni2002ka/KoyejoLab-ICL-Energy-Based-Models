@@ -82,7 +82,7 @@ def main(wandb_config: Dict[str, Any]):
                 wandb_config=wandb_config,
             ),
         ],
-        # check_val_every_n_epoch=wandb_config["check_val_every_n_epoch"],
+        check_val_every_n_epoch=wandb_config["check_val_every_n_epoch"],
         default_root_dir=run_checkpoint_dir,
         deterministic=True,
         accelerator=accelerator,
@@ -100,7 +100,7 @@ def main(wandb_config: Dict[str, Any]):
         # profiler="advanced",  # More advanced profiler.
         # profiler=PyTorchProfiler(filename=),  # PyTorch specific profiler
         precision=wandb_config["precision"],
-        strategy="ddp_find_unused_parameters_true",
+        # strategy="ddp_find_unused_parameters_true",
         # strategy="ddp",
         sync_batchnorm=True,
     )

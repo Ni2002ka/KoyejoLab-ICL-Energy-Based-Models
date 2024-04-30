@@ -2,7 +2,7 @@ default_config = {
     "accumulate_grad_batches": 2,
     "batch_size_train": 7,
     "batch_size_val": 2,
-    "check_val_every_n_epoch": 5,
+    "check_val_every_n_epoch": 1,
     "compile_model": False,
     # "dataset_kwargs": {
     #     "dataset": "mixture_of_gaussians",
