@@ -24,7 +24,7 @@ def plot_dataset_2D_energy_landscapes(
     batch_size, total_meshgrid_points, max_seq_len, energy_dim = energy_landscape.shape
     assert n_batch_elements_to_plot <= batch_size
     meshgrid_points_per_slice = int(np.sqrt(total_meshgrid_points))
-    meshgrid_max_abs_val = 1.1 * np.max(np.abs(meshgrid))
+    meshgrid_max_abs_val = np.max(np.abs(meshgrid))
 
     # Center the energy landscape at zero for each batch index.
     energy_landscape -= np.mean(energy_landscape, axis=(1, 2, 3), keepdims=True)
@@ -219,7 +219,7 @@ def plot_linear_regression_in_context_error_vs_n_in_context_examples(
     tall_df = pd.melt(
         df,
         id_vars=["seq_idx"],
-        var_name="confab_idx",
+        var_name="batch_idx_and_confab_idx",
         value_name="squared_norm_diff_final_sampled_data",
     )
 
@@ -227,6 +227,7 @@ def plot_linear_regression_in_context_error_vs_n_in_context_examples(
         data=tall_df,
         x="seq_idx",
         y="squared_norm_diff_final_sampled_data",
+        hue="batch_idx_and_confab_idx",
     )
     plt.xlabel("Num of In-Context Examples")
     plt.ylabel(r"$\mathbb{E} [ ||y - \hat{y} ||^2 ]$")

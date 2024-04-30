@@ -140,13 +140,13 @@ default_config = {
         "all_steps": False,
         "gradient_clip_val": 10.0,
         "n_mcmc_steps": 10,
-        "noise_scale": 2.0,
+        "noise_scale": 1.0,
         "kl_coeff": 0.0,
         "ratio_of_confabulated_samples_to_real_samples": 3,
         "replay_buffer": False,  # Use MCMC chains initialized from a replay buffer.
         "replay_buffer_size": 10000,
-        "resampling_rate": 0.001,
-        "step_size": 1.0,  # Yilun says large step sizes e.g., 100.0, 10. are good.
+        "resampling_rate": 0.0,
+        "step_size": 10.0,  # Yilun says large step sizes e.g., 100.0, 10. are good.
     },
     "model_kwargs": {
         "activation": "gelu",
