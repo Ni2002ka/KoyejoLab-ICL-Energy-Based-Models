@@ -149,16 +149,12 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                     raise NotImplementedError("Replay buffer not implemented yet.")
 
                 if self.wandb_config["mcmc_kwargs"]["algorithm"] == "langevin_mcmc":
-                    transformer_sampled_data_results_dict = (
-                        pl_module.sample_data_with_langevin_mcmc(
-                            real_data=real_data,
-                            initial_sampled_data=initial_sampled_data,
-                            sampling_update_mask=sampling_update_mask,
-                            noise_scale=0.1,
-                        )
+                    transformer_sampled_data_results_dict = pl_module.sample_data_with_langevin_mcmc(
+                        real_data=real_data,
+                        initial_sampled_data=initial_sampled_data,
+                        sampling_update_mask=sampling_update_mask,
+                        # noise_scale=0.1,
                     )
-
-                    true_sampled_data_results_dict = {"final_sampled_data": real_data}
 
                 elif (
                     self.wandb_config["mcmc_kwargs"]["algorithm"] == "hamiltonian_mcmc"
@@ -172,7 +168,8 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                 else:
                     raise ValueError("Invalid MCMC algorithm.")
 
-                final_sampled_data = (
+                # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, n in-context examples, data shape...)
+                final_sampled_data_numpy = (
                     transformer_sampled_data_results_dict["final_sampled_data"]
                     .detach()
                     .cpu()
@@ -180,32 +177,36 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                 )
 
                 # We only calculate the MSE for the y coordinate
-                # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, max seq length, )
-                diff_final_sampled_data = torch.subtract(
-                    transformer_sampled_data_results_dict["final_sampled_data"][
-                        :, :, :, -1
-                    ],
-                    real_data[:, np.newaxis, :, -1],  # insert confabulation axis.
+                # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, max seq length, data dim...)
+                diff_final_sampled_data_numpy = (
+                    sampling_update_mask.cpu().numpy()
+                    * np.subtract(
+                        final_sampled_data_numpy,
+                        real_data_numpy[:, np.newaxis],  # insert confabulation axis.
+                    )
                 )
 
                 # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, max seq length)
-                squared_norm_diff_final_sampled_data = torch.square(
-                    diff_final_sampled_data
+                squared_norm_diff_final_sampled_data_numpy = np.square(
+                    np.linalg.norm(
+                        diff_final_sampled_data_numpy,
+                        axis=3,
+                    )
                 )
 
                 eval_log_dict = {
-                    f"test_{eval_name}/mse_transformers_samples_vs_true_samples_in_context={seq_idx}": torch.mean(
-                        squared_norm_diff_final_sampled_data[:, :, seq_idx]
+                    f"test_{eval_name}/mse_transformers_samples_vs_true_samples_in_context={seq_idx}": np.mean(
+                        squared_norm_diff_final_sampled_data_numpy[:, :, seq_idx]
                     )
-                    for seq_idx in range(diff_final_sampled_data.shape[2])
+                    for seq_idx in range(
+                        squared_norm_diff_final_sampled_data_numpy.shape[2]
+                    )
                 }
 
                 wandb.log(eval_log_dict)
 
                 src.plot.plot_linear_regression_in_context_error_vs_n_in_context_examples(
-                    squared_norm_diff_final_sampled_data=squared_norm_diff_final_sampled_data.detach()
-                    .cpu()
-                    .numpy(),
+                    squared_norm_diff_final_sampled_data=squared_norm_diff_final_sampled_data_numpy,
                     wandb_logger=pl_module.wandb_logger,
                     wandb_key=eval_name + "_in_context_error_vs_n_in_context_examples",
                 )
@@ -223,9 +224,9 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
                 # )
 
                 src.plot.plot_dataset_2D_real_data_and_sampled_data(
-                    real_data=real_data.cpu().numpy(),
+                    real_data=real_data_numpy,
                     initial_sampled_data=initial_sampled_data.detach().cpu().numpy(),
-                    final_sampled_data=final_sampled_data,
+                    final_sampled_data=final_sampled_data_numpy,
                     wandb_logger=pl_module.wandb_logger,
                     wandb_key=eval_name + "_real_data_and_sampled_data",
                 )

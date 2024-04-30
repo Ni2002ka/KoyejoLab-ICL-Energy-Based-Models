@@ -229,7 +229,7 @@ def plot_linear_regression_in_context_error_vs_n_in_context_examples(
         y="squared_norm_diff_final_sampled_data",
     )
     plt.xlabel("Num of In-Context Examples")
-    plt.ylabel(r"$||y - \hat{y} ||^2$")
+    plt.ylabel(r"$\mathbb{E} [ ||y - \hat{y} ||^2 ]$")
     plt.yscale("log")
     # plt.ylim(bottom=0.0)
     # plt.show()
