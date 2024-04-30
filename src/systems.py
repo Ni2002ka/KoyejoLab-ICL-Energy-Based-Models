@@ -202,7 +202,7 @@ class InContextLearningEnergyBasedModelEvaluationCallback(lightning.Callback):
 
                 wandb.log(eval_log_dict)
 
-                src.plot.plot_in_context_error_vs_n_in_context_examples(
+                src.plot.plot_linear_regression_in_context_error_vs_n_in_context_examples(
                     squared_norm_diff_final_sampled_data=squared_norm_diff_final_sampled_data.detach()
                     .cpu()
                     .numpy(),

@@ -169,6 +169,6 @@ default_config = {
     "precision": "bf16-mixed",  # Supported on CPU. 16-mixed is not.
     "seed": 0,
     "weight_decay": 1e-5,
-    "which_transformer": "huggingface",
-    # "which_transformer": "pytorch",
+    # "which_transformer": "huggingface",
+    "which_transformer": "pytorch",
 }

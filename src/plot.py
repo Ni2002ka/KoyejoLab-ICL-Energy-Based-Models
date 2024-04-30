@@ -194,42 +194,37 @@ def plot_dataset_2D_real_data_and_sampled_data(
     # plt.show()
 
 
-def plot_in_context_error_vs_n_in_context_examples(
+def plot_linear_regression_in_context_error_vs_n_in_context_examples(
     squared_norm_diff_final_sampled_data: np.ndarray,
     wandb_logger=None,
     wandb_key: str = "squared_norm_diff_final_sampled_data",
 ):
     plt.close()
-    # Shape: (batch size, ratio_of_confabulated_samples_to_real_samples, max seq length)
-    average_of_squared_norm_diff_final_sampled_data = np.mean(
-        squared_norm_diff_final_sampled_data,
-        axis=(0, 1),
+
+    # Shape: (batch size * confabulations, max seq length)
+    df = pd.DataFrame(
+        squared_norm_diff_final_sampled_data.reshape(
+            -1, squared_norm_diff_final_sampled_data.shape[2]  # Max sequence length.
+        ).T,
     )
-    std_dev_of_squared_norm_diff_final_sampled_data = np.std(
-        squared_norm_diff_final_sampled_data,
-        axis=(0, 1),
+    df["seq_idx"] = np.arange(squared_norm_diff_final_sampled_data.shape[2])
+
+    tall_df = pd.melt(
+        df,
+        id_vars=["seq_idx"],
+        var_name="confab_idx",
+        value_name="squared_norm_diff_final_sampled_data",
     )
 
-    plt.errorbar(
-        x=np.arange(1, 1 + len(average_of_squared_norm_diff_final_sampled_data)),
-        y=average_of_squared_norm_diff_final_sampled_data,
-        yerr=std_dev_of_squared_norm_diff_final_sampled_data,
-        fmt="-o",
-        capsize=5,
+    sns.lineplot(
+        data=tall_df,
+        x="seq_idx",
+        y="squared_norm_diff_final_sampled_data",
     )
-    # sns.lineplot(
-    #     x=np.arange(1, 1 + len(average_of_squared_norm_diff_final_sampled_data)),
-    #     y=average_of_squared_norm_diff_final_sampled_data,
-    #     yerr=std_dev_of_squared_norm_diff_final_sampled_data,
-    #     err_style='bars',  # Style of the error bars ('band' or 'bars')
-    #     capsize=0.1,       # Size of the caps on error bars
-    # )
     plt.xlabel("Num of In-Context Examples")
-    plt.ylabel(
-        r"$||x_{\theta}(t\rightarrow \infty) - x_{true}(t\rightarrow \infty) ||^2$"
-    )
+    plt.ylabel(r"$||y - \hat{y} ||^2$")
     plt.ylim(bottom=0.0)
-    # plt.show()
+    plt.show()
 
     # https://docs.wandb.ai/guides/track/log/plots#matplotlib-and-plotly-plots
     fig = plt.gcf()
