@@ -208,26 +208,36 @@ def plot_linear_regression_in_context_error_vs_n_in_context_examples(
 ):
     plt.close()
 
-    # Shape: (batch size * confabulations, max seq length)
-    df = pd.DataFrame(
-        squared_norm_diff_final_sampled_data.reshape(
-            -1, squared_norm_diff_final_sampled_data.shape[2]  # Max sequence length.
-        ).T,
-    )
-    df["seq_idx"] = np.arange(squared_norm_diff_final_sampled_data.shape[2])
+    (
+        batch_size,
+        ratio_confabulations,
+        max_seq_length,
+    ) = squared_norm_diff_final_sampled_data.shape
 
-    tall_df = pd.melt(
-        df,
-        id_vars=["seq_idx"],
-        var_name="batch_idx_and_confab_idx",
-        value_name="squared_norm_diff_final_sampled_data",
+    batch_indices = np.repeat(
+        np.arange(batch_size), ratio_confabulations * max_seq_length
+    )
+    confab_indices = np.tile(
+        np.repeat(np.arange(ratio_confabulations), max_seq_length), batch_size
+    )
+    sequence_indices = np.tile(
+        np.arange(max_seq_length), batch_size * ratio_confabulations
+    )
+
+    df = pd.DataFrame(
+        {
+            "batch_idx": batch_indices,
+            "confab_idx": confab_indices,
+            "seq_idx": sequence_indices,
+            "squared_norm_diff_final_sampled_data": squared_norm_diff_final_sampled_data.flatten(),
+        }
     )
 
     sns.lineplot(
-        data=tall_df,
+        data=df,
         x="seq_idx",
         y="squared_norm_diff_final_sampled_data",
-        hue="batch_idx_and_confab_idx",
+        hue="batch_idx",
     )
     plt.xlabel("Num of In-Context Examples")
     plt.ylabel(r"$\mathbb{E} [ ||y - \hat{y} ||^2 ]$")
